@@ -12,7 +12,19 @@ import Navigation from "@/components/Navigation/Navigation"
 import MainArea from "@/components/MainArea/MainArea"
 import Sidebar from "@/components/Sidebar/Sidebar"
 import { ThemeProvider } from "@/contexts/ThemeContext"
-import { Message } from "./types/Message"
+import { Message, Evaluation, Session } from "./types/Message"
+
+const SESSIONS_STORAGE_KEY = "mock_interview_sessions"
+const MAX_SESSIONS = 50
+
+function sessionTitle(messages: Message[]): string {
+  const firstUser = messages.find((m) => m.role === "user")
+  if (firstUser?.content) {
+    const text = firstUser.content.replace(/\s+/g, " ").trim()
+    return text.length > 36 ? `${text.slice(0, 36)}…` : text
+  }
+  return "Mock Interview"
+}
 import { useAgentAPI } from "@/hooks/useAgentAPI"
 import { useChatAreaMeasurement } from "@/hooks/useChatAreaMeasurement"
 import { logger } from "./utils/logger"
@@ -25,6 +37,7 @@ const App: React.FC = () => {
   const [agentResponse, setAgentResponse] = useState<string>("")
   const [isAgentLoading, setIsAgentLoading] = useState<boolean>(false)
   const [messages, setMessages] = useState<Message[]>([])
+  const [sessions, setSessions] = useState<Session[]>([])
   const [resume, setResume] = useState<string>("")
   const [jobDescription, setJobDescription] = useState<string>("")
   const { sendMessageWithCallback } = useAgentAPI()
@@ -40,13 +53,37 @@ const App: React.FC = () => {
   useEffect(() => {
     const storedMessages = localStorage.getItem(LOCAL_STORAGE_KEY)
     if (storedMessages) {
-      setMessages(JSON.parse(storedMessages))
+      try {
+        setMessages(JSON.parse(storedMessages))
+      } catch {
+        // ignore invalid stored messages
+      }
+    }
+    const storedSessions = localStorage.getItem(SESSIONS_STORAGE_KEY)
+    if (storedSessions) {
+      try {
+        setSessions(JSON.parse(storedSessions))
+      } catch {
+        // ignore invalid stored sessions
+      }
     }
   }, [])
 
   useEffect(() => {
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(messages))
   }, [messages])
+
+  useEffect(() => {
+    localStorage.setItem(SESSIONS_STORAGE_KEY, JSON.stringify(sessions))
+  }, [sessions])
+
+  const latestEvaluation: Evaluation | null = (() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i]
+      if (msg.role === "assistant" && msg.evaluation) return msg.evaluation
+    }
+    return null
+  })()
 
   const chatHeightValue = currentUserMessage || agentResponse ? chatHeight : 76
 
@@ -128,12 +165,28 @@ const App: React.FC = () => {
     }
 
   const handleClearConversation = () => {
+    if (messages.length > 0) {
+      const newSession: Session = {
+        id: `session_${Date.now()}`,
+        title: sessionTitle(messages),
+        createdAt: Date.now(),
+        messages: [...messages],
+      }
+      setSessions((prev) => [newSession, ...prev].slice(0, MAX_SESSIONS))
+    }
     setMessages([])
     setCurrentUserMessage("")
     setAgentResponse("")
     setIsAgentLoading(false)
     setButtonClicked(false)
     setAiReplied(false)
+  }
+
+  const handleLoadSession = (session: Session) => {
+    setMessages(session.messages)
+    setCurrentUserMessage("")
+    setAgentResponse("")
+    setIsAgentLoading(false)
   }
 
   return (
@@ -147,10 +200,20 @@ const App: React.FC = () => {
             setResume={setResume}
             jobDescription={jobDescription}
             setJobDescription={setJobDescription}
+            latestEvaluation={latestEvaluation}
+            sessions={sessions}
+            onLoadSession={handleLoadSession}
+            onNewSession={handleClearConversation}
           />
 
-          <div className="flex min-w-0 flex-1 flex-col border-l border-action-background bg-app-background">
-            <div className="relative flex-grow">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col border-l border-action-background bg-app-background">
+            <div
+              className={
+                messages.length > 0
+                  ? "relative min-h-0 shrink-0 basis-[40%]"
+                  : "relative min-h-0 flex-grow"
+              }
+            >
               <MainArea
                 buttonClicked={buttonClicked}
                 setButtonClicked={setButtonClicked}
@@ -161,7 +224,13 @@ const App: React.FC = () => {
               />
             </div>
 
-            <div className="flex min-h-[76px] w-full flex-none flex-col items-center justify-center gap-0 bg-overlay-background p-0 md:min-h-[96px]">
+            <div
+              className={
+                messages.length > 0
+                  ? "flex min-h-0 w-full min-w-0 shrink-0 basis-[60%] flex-col items-center justify-end gap-0 overflow-hidden bg-overlay-background p-0"
+                  : "flex min-h-[76px] w-full min-w-0 flex-1 flex-col items-center justify-end gap-0 overflow-hidden bg-overlay-background p-0 md:min-h-[96px]"
+              }
+            >
               <ChatArea
                 messages={messages}
                 setMessages={setMessages}

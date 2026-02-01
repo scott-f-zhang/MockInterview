@@ -26,6 +26,8 @@ const EvaluationCard: React.FC<EvaluationCardProps> = ({ evaluation }) => {
     : ["relevance", "depth", "clarity", "structure", "professionalism"]
   const displayFinalScore = Number.isFinite(final_score) ? final_score : 0
 
+  const hasComments = aspectKeys.some((k) => aspect_comments?.[k]?.trim())
+
   return (
     <div className="mb-3 rounded-lg border border-[rgb(220,220,220)] bg-white p-3 text-sm">
       <div className="mb-2 text-xs font-medium uppercase tracking-wide text-[rgb(100,100,100)]">
@@ -36,7 +38,6 @@ const EvaluationCard: React.FC<EvaluationCardProps> = ({ evaluation }) => {
           const rawScore = aspect_scores[key] ?? 0
           const score = Number.isFinite(rawScore) ? rawScore : 0
           const agentLabel = ASPECT_AGENT_LABELS[key] ?? `${key} Agent`
-          const comment = aspect_comments?.[key]
           return (
             <div
               key={key}
@@ -68,14 +69,11 @@ const EvaluationCard: React.FC<EvaluationCardProps> = ({ evaluation }) => {
                   style={{ width: `${(score / 5) * 100}%` }}
                 />
               </div>
-              {comment ? (
-                <p className="line-clamp-2 text-xs text-[rgb(100,100,100)]">{comment}</p>
-              ) : null}
             </div>
           )
         })}
       </div>
-      <div className="flex items-center justify-between gap-2 rounded-md border border-[#049FD9]/40 bg-[rgb(248,252,254)] px-2 py-1.5">
+      <div className="mb-2 flex items-center justify-between gap-2 rounded-md border border-[#049FD9]/40 bg-[rgb(248,252,254)] px-2 py-1.5">
         <div className="flex items-center gap-1.5">
           <RiRobot2Fill className="h-4 w-4 shrink-0 text-[#049FD9]" aria-hidden />
           <span className="text-xs font-semibold text-[rgb(60,60,60)]">
@@ -86,6 +84,26 @@ const EvaluationCard: React.FC<EvaluationCardProps> = ({ evaluation }) => {
           Overall: {displayFinalScore.toFixed(1)} / 5
         </span>
       </div>
+      {hasComments ? (
+        <div className="rounded-md border border-[rgb(235,235,235)] bg-[rgb(250,250,250)] p-2">
+          <div className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-[rgb(100,100,100)]">
+            Detailed feedback by aspect
+          </div>
+          <ul className="list-none space-y-1.5 text-xs text-[rgb(60,60,60)]">
+            {aspectKeys.map((key) => {
+              const comment = aspect_comments?.[key]?.trim()
+              const agentLabel = ASPECT_AGENT_LABELS[key] ?? `${key} Agent`
+              if (!comment) return null
+              return (
+                <li key={key} className="flex flex-col gap-0.5">
+                  <span className="font-medium text-[rgb(80,80,80)]">{agentLabel}:</span>
+                  <span className="leading-relaxed">{comment}</span>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      ) : null}
     </div>
   )
 }

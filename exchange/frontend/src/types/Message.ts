@@ -17,3 +17,10 @@ export interface Message {
   animate: boolean
   evaluation?: Evaluation
 }
+
+export interface Session {
+  id: string
+  title: string
+  createdAt: number
+  messages: Message[]
+}

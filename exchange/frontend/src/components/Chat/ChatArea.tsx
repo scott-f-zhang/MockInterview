@@ -7,9 +7,8 @@ import React, { useState } from "react"
 import airplaneSvg from "@/assets/airplane.svg"
 import SuggestedPromptsDropdown from "./SuggestedPromptsDropdown"
 import { useAgentAPI } from "@/hooks/useAgentAPI"
-import UserMessage from "./UserMessage"
 import ChatHeader from "./ChatHeader"
-import AgentIcon from "@/assets/Agent_Icon.svg"
+import Messages from "./Messages"
 import { Message } from "@/types/Message"
 import { logger } from "@/utils/logger"
 
@@ -129,10 +128,10 @@ const ChatArea: React.FC<ChatAreaProps> = ({
   return (
     <div
       ref={chatRef}
-      className="relative flex w-full flex-col"
+      className="relative flex min-h-0 w-full flex-1 flex-col"
       style={{ backgroundColor: "var(--overlay-background)" }}
     >
-      {currentUserMessage && (
+      {messages.length > 0 && (
         <ChatHeader
           onMinimize={isMinimized ? handleRestore : handleMinimize}
           onClearConversation={onClearConversation}
@@ -141,38 +140,11 @@ const ChatArea: React.FC<ChatAreaProps> = ({
         />
       )}
 
-      <div
-        className={`flex w-full flex-col items-center justify-center gap-2 px-4 ${currentUserMessage ? "py-2" : "py-4"} sm:px-8 md:px-16 lg:px-[120px]`}
-        style={{ minHeight: currentUserMessage ? "auto" : "120px" }}
-      >
-        {currentUserMessage && !isMinimized && (
-          <div className="mb-4 flex w-full max-w-[880px] flex-col gap-3">
-            <UserMessage content={currentUserMessage} />
-            {(isAgentLoading || agentResponse) && (
-              <div className="flex w-full flex-row items-start gap-1">
-                <div className="chat-avatar-container flex h-10 w-10 flex-none items-center justify-center rounded-full bg-action-background">
-                  <img
-                    src={AgentIcon}
-                    alt="Agent"
-                    className="h-[22px] w-[22px]"
-                  />
-                </div>
-                <div className="flex max-w-[calc(100%-3rem)] flex-1 flex-col items-start justify-center rounded p-1 px-2">
-                  <div className="whitespace-pre-wrap break-words font-inter text-sm font-normal leading-5 !text-chat-text">
-                    {isAgentLoading ? (
-                      <div className="animate-pulse text-accent-primary">
-                        ...
-                      </div>
-                    ) : (
-                      agentResponse
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <Messages messages={messages} />
+      </div>
 
+      <div className="flex w-full flex-none flex-col items-center justify-center gap-2 px-4 py-4 sm:px-8 md:px-16 lg:px-[120px]">
         <div className="relative z-10 flex h-9 w-auto w-full max-w-[880px] flex-row items-start gap-2 p-0">
           <SuggestedPromptsDropdown visible={true} onSelect={handleDropdownQuery} />
         </div>
@@ -209,5 +181,6 @@ const ChatArea: React.FC<ChatAreaProps> = ({
     </div>
   )
 }
+
 
 export default ChatArea
