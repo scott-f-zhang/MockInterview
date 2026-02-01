@@ -281,3 +281,18 @@
     color: hsl(var(--foreground));
   }
 }
+
+/* Chat message markdown (Feedback, Score, Next question, etc.) */
+.chat-markdown {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.chat-markdown p {
+  margin: 0 0 0.5em;
+}
+.chat-markdown p:last-child {
+  margin-bottom: 0;
+}
+.chat-markdown strong {
+  font-weight: 600;
+}

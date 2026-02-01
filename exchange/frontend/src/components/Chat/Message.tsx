@@ -4,6 +4,7 @@
  **/
 
 import React, { useEffect, useRef, useState } from "react"
+import ReactMarkdown from "react-markdown"
 import { HiUser } from "react-icons/hi"
 import { RiRobot2Fill } from "react-icons/ri"
 import { Waveform } from "ldrs/react"
@@ -63,7 +64,11 @@ const SlowText: React.FC<SlowTextProps> = ({ text, speed = 25 }) => {
     }
   }, [displayedText, speed, text])
 
-  return <span>{displayedText}</span>
+  return (
+    <div className="chat-markdown">
+      <ReactMarkdown>{displayedText}</ReactMarkdown>
+    </div>
+  )
 }
 
 interface MessageProps {
@@ -100,7 +105,9 @@ const Message: React.FC<MessageProps> = ({
         ) : animate ? (
           <SlowText speed={20} text={content} />
         ) : (
-          content
+          <div className="chat-markdown">
+            <ReactMarkdown>{content}</ReactMarkdown>
+          </div>
         )}
       </div>
     </div>
