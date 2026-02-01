@@ -109,8 +109,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             className="flex min-h-[40px] w-full items-center justify-center gap-2 rounded-lg border border-sidebar-border bg-sidebar-item-selected px-3 py-2 text-sm font-medium text-sidebar-text transition-colors hover:bg-sidebar-border/50"
           >
             <span aria-hidden>✨</span>
-            <span>New Session</span>
-            <span className="text-xs opacity-80">新对话</span>
+            <span>New Chat</span>
           </button>
         )}
 
