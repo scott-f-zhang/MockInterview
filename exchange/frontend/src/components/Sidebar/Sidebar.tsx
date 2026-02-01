@@ -4,6 +4,7 @@
  **/
 
 import React, { useState } from "react"
+import { Trash2 } from "lucide-react"
 import { Evaluation, Session } from "@/types/Message"
 
 const ASPECT_LABELS: Record<string, string> = {
@@ -71,6 +72,7 @@ interface SidebarProps {
   latestEvaluation?: Evaluation | null
   sessions?: Session[]
   onLoadSession?: (session: Session) => void
+  onDeleteSession?: (session: Session) => void
   onNewSession?: () => void
 }
 
@@ -82,6 +84,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   latestEvaluation,
   sessions = [],
   onLoadSession,
+  onDeleteSession,
   onNewSession,
 }) => {
   const [contextOpen, setContextOpen] = useState<boolean>(false)
@@ -126,11 +129,11 @@ const Sidebar: React.FC<SidebarProps> = ({
             {historyOpen && (
               <ul className="flex max-h-[200px] flex-col gap-0.5 overflow-y-auto rounded border border-sidebar-border bg-sidebar-background p-1">
                 {sessions.map((session) => (
-                  <li key={session.id}>
+                  <li key={session.id} className="flex items-center gap-1">
                     <button
                       type="button"
                       onClick={() => onLoadSession?.(session)}
-                      className="flex w-full flex-col items-start gap-0.5 rounded px-2 py-1.5 text-left text-xs text-sidebar-text transition-colors hover:bg-sidebar-item-selected"
+                      className="flex min-w-0 flex-1 flex-col items-start gap-0.5 rounded px-2 py-1.5 text-left text-xs text-sidebar-text transition-colors hover:bg-sidebar-item-selected"
                     >
                       <span className="line-clamp-2 w-full break-words font-medium">
                         {session.title}
@@ -139,28 +142,25 @@ const Sidebar: React.FC<SidebarProps> = ({
                         {formatSessionDate(session.createdAt)}
                       </span>
                     </button>
+                    {onDeleteSession && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onDeleteSession(session)
+                        }}
+                        className="shrink-0 rounded p-1 text-sidebar-text/70 transition-colors hover:bg-sidebar-item-selected hover:text-sidebar-text"
+                        aria-label="Delete history"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
                   </li>
                 ))}
               </ul>
             )}
           </div>
         )}
-
-        <div className="flex flex-col">
-          <div className="flex min-h-[36px] w-full items-center gap-2 rounded p-2">
-            <span className="flex-1 text-sm font-normal leading-5 tracking-wide text-sidebar-text">
-              Conversation: Mock Interview
-            </span>
-          </div>
-
-          <div className="mt-1 rounded bg-sidebar-item-selected">
-            <div className="flex min-h-[36px] w-full items-center gap-2 rounded bg-sidebar-item-selected p-2 pl-6">
-              <span className="flex-1 text-sm font-normal leading-5 tracking-wide text-sidebar-text">
-                Agent to Agent
-              </span>
-            </div>
-          </div>
-        </div>
 
         {latestEvaluation != null && (
           <div className="flex flex-col gap-2">

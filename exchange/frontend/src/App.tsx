@@ -4,6 +4,7 @@
  **/
 
 import React, { useState, useEffect } from "react"
+import { Maximize2, Minimize2 } from "lucide-react"
 import { LOCAL_STORAGE_KEY } from "@/components/Chat/Messages"
 
 import ChatArea from "@/components/Chat/ChatArea"
@@ -40,6 +41,7 @@ const App: React.FC = () => {
   const [sessions, setSessions] = useState<Session[]>([])
   const [resume, setResume] = useState<string>("")
   const [jobDescription, setJobDescription] = useState<string>("")
+  const [isChatFullscreen, setIsChatFullscreen] = useState<boolean>(false)
   const { sendMessageWithCallback } = useAgentAPI()
 
   const {
@@ -189,6 +191,10 @@ const App: React.FC = () => {
     setIsAgentLoading(false)
   }
 
+  const handleDeleteSession = (session: Session) => {
+    setSessions((prev) => prev.filter((s) => s.id !== session.id))
+  }
+
   return (
     <ThemeProvider>
       <div className="flex h-screen w-screen flex-col overflow-hidden bg-app-background">
@@ -203,34 +209,52 @@ const App: React.FC = () => {
             latestEvaluation={latestEvaluation}
             sessions={sessions}
             onLoadSession={handleLoadSession}
+            onDeleteSession={handleDeleteSession}
             onNewSession={handleClearConversation}
           />
 
           <div className="flex min-h-0 min-w-0 flex-1 flex-col border-l border-action-background bg-app-background">
-            <div
-              className={
-                messages.length > 0
-                  ? "relative min-h-0 shrink-0 basis-[40%]"
-                  : "relative min-h-0 flex-grow"
-              }
-            >
-              <MainArea
-                buttonClicked={buttonClicked}
-                setButtonClicked={setButtonClicked}
-                aiReplied={aiReplied}
-                setAiReplied={setAiReplied}
-                chatHeight={chatHeightValue}
-                isExpanded={isExpanded}
-              />
-            </div>
+            {!isChatFullscreen && (
+              <div
+                className={
+                  messages.length > 0
+                    ? "relative min-h-0 shrink-0 basis-[40%]"
+                    : "relative min-h-0 flex-grow"
+                }
+              >
+                <MainArea
+                  buttonClicked={buttonClicked}
+                  setButtonClicked={setButtonClicked}
+                  aiReplied={aiReplied}
+                  setAiReplied={setAiReplied}
+                  chatHeight={chatHeightValue}
+                  isExpanded={isExpanded}
+                />
+              </div>
+            )}
 
             <div
               className={
-                messages.length > 0
-                  ? "flex min-h-0 w-full min-w-0 shrink-0 basis-[60%] flex-col items-center justify-end gap-0 overflow-hidden bg-overlay-background p-0"
-                  : "flex min-h-[76px] w-full min-w-0 flex-1 flex-col items-center justify-end gap-0 overflow-hidden bg-overlay-background p-0 md:min-h-[96px]"
+                isChatFullscreen
+                  ? "relative flex min-h-0 w-full min-w-0 flex-1 flex-col items-center justify-end gap-0 overflow-hidden bg-overlay-background p-0"
+                  : messages.length > 0
+                    ? "relative flex min-h-0 w-full min-w-0 shrink-0 basis-[60%] flex-col items-center justify-end gap-0 overflow-hidden bg-overlay-background p-0"
+                    : "relative flex min-h-[76px] w-full min-w-0 flex-1 flex-col items-center justify-end gap-0 overflow-hidden bg-overlay-background p-0 md:min-h-[96px]"
               }
             >
+              <button
+                type="button"
+                onClick={() => setIsChatFullscreen((prev) => !prev)}
+                className="absolute right-2 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-md border border-sidebar-border bg-sidebar-background text-sidebar-text shadow-sm transition-colors hover:bg-sidebar-item-selected"
+                aria-label={isChatFullscreen ? "Restore chat to half size" : "Fullscreen chat"}
+                title={isChatFullscreen ? "Restore chat to half size" : "Fullscreen chat"}
+              >
+                {isChatFullscreen ? (
+                  <Minimize2 className="h-4 w-4" />
+                ) : (
+                  <Maximize2 className="h-4 w-4" />
+                )}
+              </button>
               <ChatArea
                 messages={messages}
                 setMessages={setMessages}
