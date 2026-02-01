@@ -3,6 +3,7 @@
 
 import json
 import logging
+import re
 from typing import Any, TypedDict
 
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -17,8 +18,18 @@ logger = logging.getLogger("mock_interview.farm_agent.graph")
 # Phases for interview flow (Context Agent will use resume+JD later)
 PHASES = ["intro", "technical", "behavioral", "closing"]
 
+# Five evaluation dimensions (group decision); keys used in state and API
+EVALUATION_ASPECTS = ["relevance", "depth", "clarity", "structure", "professionalism"]
+ASPECT_LABELS = {
+    "relevance": "Relevance (did they answer the question)",
+    "depth": "Depth (substance and detail)",
+    "clarity": "Clarity (clear and understandable)",
+    "structure": "Structure (organized and logical)",
+    "professionalism": "Professionalism (tone and appropriateness)",
+}
 
-class State(TypedDict):
+
+class State(TypedDict, total=False):
     prompt: str
     parsed: dict[str, Any]
     conversation_history: list[dict[str, str]]
@@ -30,6 +41,9 @@ class State(TypedDict):
     error_type: str
     error_message: str
     response_text: str
+    aspect_scores: dict[str, float]
+    aspect_comments: dict[str, str]
+    final_score: float
 
 
 def _parse_input(prompt: str) -> dict[str, Any] | None:
@@ -110,6 +124,36 @@ class FarmAgent:
             "job_description": parsed.get("job_description", "") or "",
         }
 
+    def _parse_aspect_response(self, raw: str, _aspect: str) -> tuple[float, str]:
+        """Parse LLM response for one aspect: expect score 0-5 and optional comment. Returns (score, comment)."""
+        score = 2.5
+        comment = ""
+        raw = (raw or "").strip()
+        got_score_from_json = False
+        # Try JSON first
+        try:
+            match = re.search(r"\{[^{}]*\}", raw)
+            if match:
+                obj = json.loads(match.group())
+                s = obj.get("score")
+                if s is not None:
+                    score = float(s) if isinstance(s, (int, float)) else 2.5
+                    got_score_from_json = True
+                comment = (obj.get("comment") or "").strip() or ""
+        except (json.JSONDecodeError, TypeError, ValueError):
+            pass
+        # Fallback only when we did not get a score from JSON
+        if not got_score_from_json and raw:
+            for line in raw.splitlines():
+                if re.match(r"^\s*score\s*:\s*(\d+(?:\.\d+)?)", line, re.I):
+                    m = re.search(r"(\d+(?:\.\d+)?)", line)
+                    if m:
+                        score = float(m.group(1))
+                if re.match(r"^\s*comment\s*:", line, re.I):
+                    comment = line.split(":", 1)[-1].strip()
+        score = max(0.0, min(5.0, score))
+        return (round(score, 1), comment[:200] if comment else "")
+
     async def evaluator_node(self, state: State) -> dict:
         parsed = state.get("parsed") or {}
         content = parsed.get("content", "")
@@ -137,25 +181,69 @@ class FarmAgent:
             if job_description:
                 context_block += f"Job description:\n{job_description}\n\n"
 
+        base_user = ""
+        if context_block:
+            base_user = context_block
+        base_user += f"Interview question:\n{last_question}\n\nCandidate's answer:\n{content}"
+
+        aspect_scores: dict[str, float] = {}
+        aspect_comments: dict[str, str] = {}
+
+        # 1. Five aspect evaluations (0-5 + optional comment each)
+        for aspect in EVALUATION_ASPECTS:
+            label = ASPECT_LABELS.get(aspect, aspect)
+            system_prompt = (
+                "You are an evaluator for a single dimension of a mock interview answer. "
+                f"Evaluate ONLY this dimension: {label}. "
+                "Output valid JSON only, no other text: {\"score\": <number 0-5>, \"comment\": \"<one short sentence>\"}. "
+                "Score must be between 0 and 5 (integer or one decimal)."
+            )
+            user_text = f"Dimension: {label}\n\n{base_user}"
+            messages = [
+                SystemMessage(content=system_prompt),
+                HumanMessage(content=user_text),
+            ]
+            response = get_llm().invoke(messages)
+            raw = (response.content or "").strip()
+            score, comment = self._parse_aspect_response(raw, aspect)
+            aspect_scores[aspect] = score
+            if comment:
+                aspect_comments[aspect] = comment
+            logger.debug("Aspect %s score: %s", aspect, score)
+
+        # 2. Final score (average) and final evaluator for feedback text
+        final_score = round(sum(aspect_scores.values()) / len(EVALUATION_ASPECTS), 1)
+        scores_summary = "\n".join(
+            f"- {ASPECT_LABELS.get(a, a)}: {aspect_scores[a]}/5"
+            + (f" — {aspect_comments[a]}" if aspect_comments.get(a) else "")
+            for a in EVALUATION_ASPECTS
+        )
         system_prompt = (
-            "You are an Evaluator Agent in a mock interview. Your job is to analyze the candidate's answer and give brief, constructive feedback.\n"
+            "You are the final Evaluator in a mock interview. You receive scores from five dimension evaluators. "
+            "Your job is to write brief, constructive feedback for the candidate.\n"
             "Provide:\n"
             "1. What was strong about the answer (1–2 sentences).\n"
             "2. One concrete suggestion to improve (1 sentence).\n"
-            "Keep feedback concise and professional. Do not ask the next question—that is the Interviewer's role."
+            "Keep feedback concise and professional. Do not ask the next question—that is the Interviewer's role. "
+            "Do not repeat the numeric scores in your feedback."
         )
-        user_text = ""
-        if context_block:
-            user_text = context_block
-        user_text += f"Interview question:\n{last_question}\n\nCandidate's answer:\n{content}"
+        user_text = (
+            f"Dimension scores (0-5) and comments:\n{scores_summary}\n\n"
+            f"Overall average: {final_score}/5. Write your feedback below."
+        )
         messages = [
             SystemMessage(content=system_prompt),
             HumanMessage(content=user_text),
         ]
         response = get_llm().invoke(messages)
         feedback = (response.content or "").strip()
-        logger.debug("Evaluator feedback: %s", feedback[:200])
-        return {"last_feedback": feedback}
+        logger.debug("Final evaluator feedback: %s", feedback[:200])
+        return {
+            "aspect_scores": aspect_scores,
+            "aspect_comments": aspect_comments,
+            "final_score": final_score,
+            "last_feedback": feedback,
+        }
 
     async def interviewer_node(self, state: State) -> dict:
         parsed = state.get("parsed") or {}
@@ -199,6 +287,9 @@ class FarmAgent:
                 user_text = context_block
             user_text += f"Current phase: {phase}. Recent conversation:\n{conv}\n\n"
             if last_feedback:
+                final_score = state.get("final_score")
+                if final_score is not None:
+                    user_text += f"Overall score (0-5) for last answer: {final_score}. "
                 user_text += f"Evaluator feedback (for context only; do not repeat): {last_feedback}\n\n"
             user_text += "Ask the next interview question (or close the interview if appropriate)."
 

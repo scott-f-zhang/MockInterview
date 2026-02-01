@@ -98,6 +98,16 @@ async def handle_prompt(request: PromptRequest):
             )
             result = await exchange_agent.a2a_client_send_message(payload)
             logger.info("Final result from exchange agent (length=%s)", len(result))
+            try:
+                parsed = json.loads(result)
+                if isinstance(parsed, dict) and "response_text" in parsed:
+                    return {
+                        "response": parsed["response_text"],
+                        "evaluation": parsed.get("evaluation"),
+                        "session_id": session_id["executionID"],
+                    }
+            except (json.JSONDecodeError, TypeError):
+                pass
             return {"response": result, "session_id": session_id["executionID"]}
     except ValueError as ve:
         logger.exception("ValueError occurred: %s", ve)

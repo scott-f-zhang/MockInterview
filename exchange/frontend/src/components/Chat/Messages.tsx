@@ -29,6 +29,7 @@ const Messages: React.FC<MessagesProps> = ({ messages }) => {
           aiMessage={msg.role === "assistant"}
           animate={msg.animate}
           loading={false}
+          evaluation={msg.evaluation}
         />
       ))}
 

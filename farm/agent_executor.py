@@ -1,6 +1,7 @@
 # Copyright AGNTCY Contributors (https://github.com/agntcy)
 # SPDX-License-Identifier: Apache-2.0
 
+import json
 import logging
 
 from a2a.server.agent_execution import AgentExecutor, RequestContext
@@ -68,8 +69,20 @@ class FarmAgentExecutor(AgentExecutor):
             response_text = output.get("response_text", "")
             if not response_text:
                 response_text = output.get("last_question", "No response generated.")
-            logger.info("Mock interview response sent (length=%s)", len(response_text))
-            await event_queue.enqueue_event(new_agent_text_message(response_text))
+            aspect_scores = output.get("aspect_scores")
+            if aspect_scores is not None and isinstance(aspect_scores, dict):
+                evaluation = {
+                    "aspect_scores": aspect_scores,
+                    "aspect_comments": output.get("aspect_comments") or {},
+                    "final_score": output.get("final_score", 0.0),
+                    "feedback": output.get("last_feedback", ""),
+                }
+                payload = json.dumps({"response_text": response_text, "evaluation": evaluation})
+                logger.info("Mock interview response sent with evaluation (length=%s)", len(payload))
+                await event_queue.enqueue_event(new_agent_text_message(payload))
+            else:
+                logger.info("Mock interview response sent (length=%s)", len(response_text))
+                await event_queue.enqueue_event(new_agent_text_message(response_text))
         except Exception as e:
             logger.error("Error in mock interview response: %s", e)
             raise ServerError(error=InternalError()) from e

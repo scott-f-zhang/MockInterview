@@ -8,6 +8,8 @@ import { HiUser } from "react-icons/hi"
 import { RiRobot2Fill } from "react-icons/ri"
 import { Waveform } from "ldrs/react"
 import "ldrs/react/Waveform.css"
+import { Evaluation } from "@/types/Message"
+import EvaluationCard from "./EvaluationCard"
 
 interface SlowTextProps {
   text: string
@@ -38,6 +40,7 @@ interface MessageProps {
   aiMessage: boolean
   animate: boolean
   loading: boolean
+  evaluation?: Evaluation
 }
 
 const Message: React.FC<MessageProps> = ({
@@ -45,6 +48,7 @@ const Message: React.FC<MessageProps> = ({
   aiMessage,
   animate,
   loading,
+  evaluation,
 }) => {
   return (
     <div
@@ -54,6 +58,13 @@ const Message: React.FC<MessageProps> = ({
         {aiMessage ? <RiRobot2Fill color="#049FD9" /> : <HiUser />}
       </div>
       <div className="ml-2 min-w-0 flex-1 break-words">
+        {aiMessage &&
+        evaluation &&
+        typeof evaluation.final_score === "number" &&
+        evaluation.aspect_scores &&
+        typeof evaluation.aspect_scores === "object" ? (
+          <EvaluationCard evaluation={evaluation} />
+        ) : null}
         {loading ? (
           <div style={{ opacity: 0.5 }}>
             <Waveform size="20" stroke="3.5" speed="1" color="#049FD9" />

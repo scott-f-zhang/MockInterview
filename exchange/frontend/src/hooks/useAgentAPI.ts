@@ -7,7 +7,7 @@ import React, { useState } from "react"
 import axios from "axios"
 import { v4 as uuid } from "uuid"
 import { Role } from "@/utils/const"
-import { Message } from "@/types/Message"
+import { Message, Evaluation } from "@/types/Message"
 
 const DEFAULT_EXCHANGE_APP_API_URL = "http://127.0.0.1:8000"
 const EXCHANGE_APP_API_URL =
@@ -15,6 +15,7 @@ const EXCHANGE_APP_API_URL =
 
 interface ApiResponse {
   response: string
+  evaluation?: Evaluation
 }
 
 interface ConversationTurn {
@@ -131,6 +132,7 @@ export const useAgentAPI = (): UseAgentAPIReturn => {
           content: response.data.response,
           id: uuid(),
           animate: true,
+          evaluation: response.data.evaluation,
         }
         return updatedMessages
       })
