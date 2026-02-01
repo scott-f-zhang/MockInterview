@@ -86,18 +86,88 @@ const SLIM_A2A_CONFIG: GraphConfig = {
       position: { x: 180, y: 500 },
     },
     {
+      id: "4a",
+      type: "customNode",
+      data: {
+        icon: FarmAgentIcon,
+        label1: "Relevance Agent",
+        label2: "0–5 score",
+        handles: "all",
+        githubLink: "https://github.com/agntcy/app-sdk",
+        agentDirectoryLink:
+          "https://agent-directory.outshift.com/explore/baeareiaf35jhrvbcdyktkr2qzbp4iarylm6u4ksl4mpgzmq5dh7aerlks4",
+      },
+      position: { x: 180, y: 380 },
+    },
+    {
+      id: "4b",
+      type: "customNode",
+      data: {
+        icon: FarmAgentIcon,
+        label1: "Depth Agent",
+        label2: "0–5 score",
+        handles: "all",
+        githubLink: "https://github.com/agntcy/app-sdk",
+        agentDirectoryLink:
+          "https://agent-directory.outshift.com/explore/baeareiaf35jhrvbcdyktkr2qzbp4iarylm6u4ksl4mpgzmq5dh7aerlks4",
+      },
+      position: { x: 380, y: 380 },
+    },
+    {
+      id: "4c",
+      type: "customNode",
+      data: {
+        icon: FarmAgentIcon,
+        label1: "Clarity Agent",
+        label2: "0–5 score",
+        handles: "all",
+        githubLink: "https://github.com/agntcy/app-sdk",
+        agentDirectoryLink:
+          "https://agent-directory.outshift.com/explore/baeareiaf35jhrvbcdyktkr2qzbp4iarylm6u4ksl4mpgzmq5dh7aerlks4",
+      },
+      position: { x: 580, y: 380 },
+    },
+    {
+      id: "4d",
+      type: "customNode",
+      data: {
+        icon: FarmAgentIcon,
+        label1: "Structure Agent",
+        label2: "0–5 score",
+        handles: "all",
+        githubLink: "https://github.com/agntcy/app-sdk",
+        agentDirectoryLink:
+          "https://agent-directory.outshift.com/explore/baeareiaf35jhrvbcdyktkr2qzbp4iarylm6u4ksl4mpgzmq5dh7aerlks4",
+      },
+      position: { x: 780, y: 380 },
+    },
+    {
+      id: "4e",
+      type: "customNode",
+      data: {
+        icon: FarmAgentIcon,
+        label1: "Professionalism Agent",
+        label2: "0–5 score",
+        handles: "all",
+        githubLink: "https://github.com/agntcy/app-sdk",
+        agentDirectoryLink:
+          "https://agent-directory.outshift.com/explore/baeareiaf35jhrvbcdyktkr2qzbp4iarylm6u4ksl4mpgzmq5dh7aerlks4",
+      },
+      position: { x: 980, y: 380 },
+    },
+    {
       id: "4",
       type: "customNode",
       data: {
         icon: FarmAgentIcon,
-        label1: "Evaluator Agent",
-        label2: "5 aspects + final score",
+        label1: "Final Evaluator Agent",
+        label2: "Average & feedback",
         handles: "target",
         githubLink: "https://github.com/agntcy/app-sdk",
         agentDirectoryLink:
           "https://agent-directory.outshift.com/explore/baeareiaf35jhrvbcdyktkr2qzbp4iarylm6u4ksl4mpgzmq5dh7aerlks4",
       },
-      position: { x: 660, y: 500 },
+      position: { x: 580, y: 500 },
     },
   ],
   edges: [
@@ -122,13 +192,21 @@ const SLIM_A2A_CONFIG: GraphConfig = {
       data: { label: "context" },
       type: "custom",
     },
+    { id: "4a-4", source: "4a", target: "4", data: { label: "score" }, type: "custom" },
+    { id: "4b-4", source: "4b", target: "4", data: { label: "score" }, type: "custom" },
+    { id: "4c-4", source: "4c", target: "4", data: { label: "score" }, type: "custom" },
+    { id: "4d-4", source: "4d", target: "4", data: { label: "score" }, type: "custom" },
+    { id: "4e-4", source: "4e", target: "4", data: { label: "score" }, type: "custom" },
   ],
   animationSequence: [
     { ids: ["1"] },
     { ids: ["1-2"] },
     { ids: ["2"] },
     { ids: ["2-3", "2-4"] },
-    { ids: ["3", "4"] },
+    { ids: ["3"] },
+    { ids: ["4a", "4b", "4c", "4d", "4e"] },
+    { ids: ["4a-4", "4b-4", "4c-4", "4d-4", "4e-4"] },
+    { ids: ["4"] },
   ],
 }
 
