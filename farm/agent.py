@@ -282,6 +282,10 @@ class FarmAgent:
             conv = "\n".join(
                 f"{h.get('role', 'unknown')}: {h.get('content', '')}" for h in history[-6:]
             )
+            # Include the current user answer so the interviewer sees the latest turn
+            current_content = (parsed.get("content") or "").strip()
+            if current_content:
+                conv = f"{conv}\nuser: {current_content}" if conv else f"user: {current_content}"
             user_text = ""
             if context_block:
                 user_text = context_block
