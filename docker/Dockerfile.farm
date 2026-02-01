@@ -1,0 +1,16 @@
+FROM python:3.13.0-slim
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends git curl wget iputils-ping && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir uv && \
+    uv venv -q /venv
+ENV PATH="/venv/bin:$PATH"
+
+WORKDIR /app
+COPY pyproject.toml ./
+RUN uv sync --no-editable --no-install-project
+COPY . .
+CMD ["uv", "run", "python", "farm/farm_server.py"]

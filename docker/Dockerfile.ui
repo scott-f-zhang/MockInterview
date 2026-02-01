@@ -1,0 +1,16 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+RUN apk add --no-cache wget curl iputils
+
+COPY exchange/frontend/package.json exchange/frontend/package-lock.json ./
+COPY exchange/frontend/ .
+RUN ["npm", "install", "--verbose"]
+RUN ["npm", "run", "build", "--verbose"]
+RUN ["npm", "cache", "clean", "--force"]
+
+EXPOSE 3000
+
+COPY docker/ui-build-and-serve.sh ./ui-build-and-serve.sh
+CMD ["sh", "./ui-build-and-serve.sh"]

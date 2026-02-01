@@ -1,0 +1,18 @@
+{
+  "cases": [
+    {
+      "id": "start_interview",
+      "prompt": "start",
+      "conversation_history": [],
+      "description": "Start mock interview returns first question"
+    },
+    {
+      "id": "answer_turn",
+      "prompt": "I am a software engineer with 5 years of experience in backend systems.",
+      "conversation_history": [
+        {"role": "assistant", "content": "Tell me about yourself."}
+      ],
+      "description": "Submit answer and get feedback + next question"
+    }
+  ]
+}
