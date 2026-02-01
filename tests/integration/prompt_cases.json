@@ -13,6 +13,14 @@
         {"role": "assistant", "content": "Tell me about yourself."}
       ],
       "description": "Submit answer and get feedback + next question"
+    },
+    {
+      "id": "start_with_resume_jd",
+      "prompt": "start",
+      "conversation_history": [],
+      "resume": "Backend engineer, 5 years Python/Go. Led API migration at Acme.",
+      "job_description": "Senior Backend Engineer. Requirements: Python, distributed systems, 3+ years.",
+      "description": "Start with resume and JD; first question should be context-aware"
     }
   ]
 }

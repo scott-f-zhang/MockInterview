@@ -24,6 +24,8 @@ interface ConversationTurn {
 
 interface SendMessageCallbacks {
   conversationHistory?: ConversationTurn[]
+  resume?: string
+  job_description?: string
   onStart?: () => void
   onSuccess?: (response: string) => void
   onError?: (error: any) => void
@@ -45,6 +47,8 @@ export const useAgentAPI = (): UseAgentAPIReturn => {
   const sendMessage = async (
     prompt: string,
     conversationHistory?: ConversationTurn[],
+    resume?: string,
+    job_description?: string,
   ): Promise<string> => {
     if (!prompt.trim()) {
       throw new Error("Prompt cannot be empty")
@@ -52,12 +56,15 @@ export const useAgentAPI = (): UseAgentAPIReturn => {
 
     setLoading(true)
     try {
+      const body: Record<string, unknown> = {
+        prompt,
+        conversation_history: conversationHistory ?? [],
+      }
+      if (resume?.trim()) body.resume = resume.trim()
+      if (job_description?.trim()) body.job_description = job_description.trim()
       const response = await axios.post<ApiResponse>(
         `${EXCHANGE_APP_API_URL}/agent/prompt`,
-        {
-          prompt,
-          conversation_history: conversationHistory ?? [],
-        },
+        body,
       )
       return response.data.response
     } catch (error) {
@@ -104,13 +111,17 @@ export const useAgentAPI = (): UseAgentAPIReturn => {
       content: m.content,
     }))
 
+    const body: Record<string, unknown> = {
+      prompt,
+      conversation_history: conversationHistory ?? [],
+    }
+    if (callbacks?.resume?.trim()) body.resume = callbacks.resume.trim()
+    if (callbacks?.job_description?.trim()) body.job_description = callbacks.job_description.trim()
+
     try {
       const response = await axios.post<ApiResponse>(
         `${EXCHANGE_APP_API_URL}/agent/prompt`,
-        {
-          prompt,
-          conversation_history: conversationHistory ?? [],
-        },
+        body,
       )
 
       setMessages((prevMessages: Message[]) => {

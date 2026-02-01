@@ -38,6 +38,10 @@ class TestMockInterviewAgent:
         payload = {"prompt": prompt_case["prompt"]}
         if "conversation_history" in prompt_case:
             payload["conversation_history"] = prompt_case["conversation_history"]
+        if "resume" in prompt_case:
+            payload["resume"] = prompt_case["resume"]
+        if "job_description" in prompt_case:
+            payload["job_description"] = prompt_case["job_description"]
         resp = exchange_client.post("/agent/prompt", json=payload)
         assert resp.status_code == 200
         data = resp.json()

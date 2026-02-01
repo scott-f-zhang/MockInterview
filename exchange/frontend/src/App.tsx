@@ -25,6 +25,8 @@ const App: React.FC = () => {
   const [agentResponse, setAgentResponse] = useState<string>("")
   const [isAgentLoading, setIsAgentLoading] = useState<boolean>(false)
   const [messages, setMessages] = useState<Message[]>([])
+  const [resume, setResume] = useState<string>("")
+  const [jobDescription, setJobDescription] = useState<string>("")
   const { sendMessageWithCallback } = useAgentAPI()
 
   const {
@@ -80,6 +82,8 @@ const App: React.FC = () => {
       try {
         await sendMessageWithCallback(query, setMessages, {
           conversationHistory,
+          resume: resume || undefined,
+          job_description: jobDescription || undefined,
           onStart: () => {
             setButtonClicked(true)
           },
@@ -138,7 +142,12 @@ const App: React.FC = () => {
         <Navigation />
 
         <div className="flex flex-1 overflow-hidden">
-          <Sidebar />
+          <Sidebar
+            resume={resume}
+            setResume={setResume}
+            jobDescription={jobDescription}
+            setJobDescription={setJobDescription}
+          />
 
           <div className="flex min-w-0 flex-1 flex-col border-l border-action-background bg-app-background">
             <div className="relative flex-grow">
@@ -160,6 +169,8 @@ const App: React.FC = () => {
                 setAiReplied={setAiReplied}
                 isBottomLayout={true}
                 showSuggestedPrompts={true}
+                resume={resume}
+                jobDescription={jobDescription}
                 onDropdownSelect={handleDropdownSelect}
                 onUserInput={handleUserInput}
                 onApiResponse={handleApiResponse}

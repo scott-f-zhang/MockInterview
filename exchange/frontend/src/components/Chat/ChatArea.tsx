@@ -20,6 +20,8 @@ interface ChatAreaProps {
   setAiReplied: (replied: boolean) => void
   isBottomLayout: boolean
   showSuggestedPrompts?: boolean
+  resume?: string
+  jobDescription?: string
   onDropdownSelect?: (query: string) => void
   onUserInput?: (query: string) => void
   onApiResponse?: (response: string, isError?: boolean) => void
@@ -36,6 +38,8 @@ const ChatArea: React.FC<ChatAreaProps> = ({
   setButtonClicked,
   setAiReplied,
   isBottomLayout,
+  resume,
+  jobDescription,
   onDropdownSelect,
   onUserInput,
   onApiResponse,
@@ -76,6 +80,8 @@ const ChatArea: React.FC<ChatAreaProps> = ({
     }))
     await sendMessageWithCallback(messageContent, setMessages, {
       conversationHistory,
+      resume: resume?.trim() || undefined,
+      job_description: jobDescription?.trim() || undefined,
       onStart: () => {
         setContent("")
         setButtonClicked(true)

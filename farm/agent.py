@@ -23,6 +23,8 @@ class State(TypedDict):
     parsed: dict[str, Any]
     conversation_history: list[dict[str, str]]
     phase: str
+    resume: str
+    job_description: str
     last_feedback: str
     last_question: str
     error_type: str
@@ -31,7 +33,7 @@ class State(TypedDict):
 
 
 def _parse_input(prompt: str) -> dict[str, Any] | None:
-    """Parse JSON input: message_type ('start' | 'answer'), content, conversation_history."""
+    """Parse JSON input: message_type, content, conversation_history, resume, job_description."""
     try:
         data = json.loads(prompt)
         if not isinstance(data, dict):
@@ -42,10 +44,18 @@ def _parse_input(prompt: str) -> dict[str, Any] | None:
         history = data.get("conversation_history")
         if history is not None and not isinstance(history, list):
             return None
+        resume = data.get("resume")
+        if resume is not None and not isinstance(resume, str):
+            resume = ""
+        job_description = data.get("job_description")
+        if job_description is not None and not isinstance(job_description, str):
+            job_description = ""
         return {
             "message_type": msg_type,
             "content": (data.get("content") or "").strip(),
             "conversation_history": history or [],
+            "resume": (resume or "").strip(),
+            "job_description": (job_description or "").strip(),
         }
     except json.JSONDecodeError:
         return None
@@ -96,6 +106,8 @@ class FarmAgent:
             "parsed": parsed,
             "conversation_history": parsed.get("conversation_history", []),
             "phase": "intro",
+            "resume": parsed.get("resume", "") or "",
+            "job_description": parsed.get("job_description", "") or "",
         }
 
     async def evaluator_node(self, state: State) -> dict:
@@ -116,6 +128,15 @@ class FarmAgent:
                 last_question = entry.get("content", "")
                 break
 
+        resume = (state.get("resume") or "").strip()
+        job_description = (state.get("job_description") or "").strip()
+        context_block = ""
+        if resume or job_description:
+            if resume:
+                context_block += f"Candidate resume:\n{resume}\n\n"
+            if job_description:
+                context_block += f"Job description:\n{job_description}\n\n"
+
         system_prompt = (
             "You are an Evaluator Agent in a mock interview. Your job is to analyze the candidate's answer and give brief, constructive feedback.\n"
             "Provide:\n"
@@ -123,7 +144,10 @@ class FarmAgent:
             "2. One concrete suggestion to improve (1 sentence).\n"
             "Keep feedback concise and professional. Do not ask the next question—that is the Interviewer's role."
         )
-        user_text = f"Interview question:\n{last_question}\n\nCandidate's answer:\n{content}"
+        user_text = ""
+        if context_block:
+            user_text = context_block
+        user_text += f"Interview question:\n{last_question}\n\nCandidate's answer:\n{content}"
         messages = [
             SystemMessage(content=system_prompt),
             HumanMessage(content=user_text),
@@ -139,6 +163,16 @@ class FarmAgent:
         history = state.get("conversation_history") or []
         last_feedback = state.get("last_feedback", "")
         phase = state.get("phase", "intro")
+        resume = (state.get("resume") or "").strip()
+        job_description = (state.get("job_description") or "").strip()
+
+        context_block = ""
+        if resume or job_description:
+            context_block = "Use the following context to tailor your questions and closing.\n\n"
+            if resume:
+                context_block += f"Candidate resume:\n{resume}\n\n"
+            if job_description:
+                context_block += f"Job description:\n{job_description}\n\n"
 
         system_prompt = (
             "You are an Interviewer Agent for a mock interview. You decide the next question and manage the interview phase.\n"
@@ -152,12 +186,18 @@ class FarmAgent:
         )
 
         if msg_type == "start":
-            user_text = "Start the mock interview. Output your first question (or brief intro + first question)."
+            user_text = ""
+            if context_block:
+                user_text = context_block
+            user_text += "Start the mock interview. Output your first question (or brief intro + first question)."
         else:
             conv = "\n".join(
                 f"{h.get('role', 'unknown')}: {h.get('content', '')}" for h in history[-6:]
             )
-            user_text = f"Current phase: {phase}. Recent conversation:\n{conv}\n\n"
+            user_text = ""
+            if context_block:
+                user_text = context_block
+            user_text += f"Current phase: {phase}. Recent conversation:\n{conv}\n\n"
             if last_feedback:
                 user_text += f"Evaluator feedback (for context only; do not repeat): {last_feedback}\n\n"
             user_text += "Ask the next interview question (or close the interview if appropriate)."

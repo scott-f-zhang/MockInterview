@@ -12,7 +12,7 @@ isProject: true
 Implement the Mock Interview Platform in this repository:
 
 1. **Phase 1 (done)**: Interviewer + Evaluator with text-only flow; backend builds farm payload and passes conversation history.
-2. **Phase 2**: Context Agent (resume + JD) so questions and feedback are context-aware.
+2. **Phase 2 (done)**: Context (resume + JD): optional resume and job_description in API and farm; Interviewer and Evaluator inject candidate/role context for context-aware questions and feedback; frontend Sidebar has collapsible resume + JD text areas.
 3. **Phase 3**: Video/audio — pipeline service or Multimodal Agent (or Evaluator tools), then wire into the flow.
 4. **Phase 4 (optional)**: Orchestrator agent if multiple entry points or complex routing are needed.
 
@@ -27,11 +27,11 @@ Implement the Mock Interview Platform in this repository:
 
 Minimum: 3 agents (Context, Interviewer, Evaluator) with backend service doing simple orchestration.
 
-## Current Implementation (Phase 1)
+## Current Implementation (Phase 1 + Phase 2)
 
-- **Farm (A2A)**: Single farm agent with a graph: Parse → (Evaluator → Interviewer for "answer", or Interviewer only for "start"). State includes `conversation_history`, `last_feedback`, `last_question`, `response_text`.
-- **Exchange**: Builds JSON payload (`message_type`: "start" | "answer", `content`, `conversation_history`) and calls farm via A2A. API accepts `prompt` and optional `conversation_history`.
-- **Frontend**: Sends `conversation_history` with each request; suggested prompts are interview starters.
+- **Farm (A2A)**: Single farm agent with a graph: Parse → (Evaluator → Interviewer for "answer", or Interviewer only for "start"). State includes `conversation_history`, `resume`, `job_description`, `last_feedback`, `last_question`, `response_text`. Interviewer and Evaluator inject resume/JD into prompts when present.
+- **Exchange**: Builds JSON payload (`message_type`, `content`, `conversation_history`, optional `resume`, `job_description`) and calls farm via A2A. API accepts `prompt`, optional `conversation_history`, optional `resume`, optional `job_description`.
+- **Frontend**: Sends `conversation_history` and optional `resume`/`job_description` with each request; sidebar has collapsible "Context (resume + JD)" with optional text areas; suggested prompts are interview starters.
 
 ## Document Location
 

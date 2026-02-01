@@ -1,6 +1,6 @@
 # Mock Interview Platform
 
-Mock interview agent project: combines resume + JD (later), video/audio/text inputs, and feedback. Based on [CoffeeAGNTCY Corto](https://github.com/agntcy/coffeeAgntcy) template.
+Mock interview agent project: combines resume + JD (optional), video/audio/text inputs (later), and feedback. Based on [CoffeeAGNTCY Corto](https://github.com/agntcy/coffeeAgntcy) template.
 
 ## Structure
 
@@ -69,7 +69,8 @@ docker compose up --build
 ## Implementation status
 
 - **Done**: Interviewer + Evaluator (text-only); exchange builds payload with `message_type` ("start" | "answer") and `conversation_history`; frontend sends history.
-- **Next**: Context Agent (resume + JD), then video/audio pipeline or Multimodal Agent. See `Plan.md`.
+- **Done**: Context (resume + JD): optional `resume` and `job_description` in API and farm; Interviewer and Evaluator use them for context-aware questions and feedback; Sidebar has collapsible "Context (resume + JD)" with text areas.
+- **Next**: Video/audio pipeline or Multimodal Agent. See `Plan.md`.
 
 ## References
 
