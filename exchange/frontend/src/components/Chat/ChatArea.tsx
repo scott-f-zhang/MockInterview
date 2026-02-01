@@ -141,7 +141,26 @@ const ChatArea: React.FC<ChatAreaProps> = ({
       )}
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <Messages messages={messages} />
+        {messages.length === 0 ? (
+          <div className="flex w-full flex-col items-center justify-center px-4 py-8 sm:px-8 md:px-16 lg:px-[120px]">
+            <div className="w-full max-w-[640px] rounded-xl border border-sidebar-border bg-sidebar-background/80 p-6 text-left shadow-inner">
+              <p className="mb-3 text-base font-medium text-sidebar-text">
+                Welcome to the mock interview.
+              </p>
+              <p className="mb-4 text-sm leading-relaxed text-sidebar-text/90">
+                You can fill in your resume and job description in the left
+                sidebar. When you are ready, choose a suggested prompt below or
+                type to start the interview.
+              </p>
+              <p className="text-xs text-sidebar-text/70">
+                Your first reply will not be scored; the interviewer will greet
+                you and ask the first question.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <Messages messages={messages} />
+        )}
       </div>
 
       <div className="flex w-full flex-none flex-col items-center justify-center gap-2 px-4 py-4 sm:px-8 md:px-16 lg:px-[120px]">
