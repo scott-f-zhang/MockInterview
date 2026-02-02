@@ -24,3 +24,10 @@ export interface Session {
   createdAt: number
   messages: Message[]
 }
+
+export interface Report {
+  id: string
+  title: string
+  createdAt: number
+  content: string
+}

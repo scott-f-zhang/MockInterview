@@ -5,7 +5,7 @@
 
 import React, { useRef, useState } from "react"
 import { Trash2, Upload } from "lucide-react"
-import { Evaluation, Session } from "@/types/Message"
+import { Evaluation, Report, Session } from "@/types/Message"
 import { uploadAndExtractDocument } from "@/hooks/useAgentAPI"
 
 const ASPECT_LABELS: Record<string, string> = {
@@ -75,6 +75,12 @@ interface SidebarProps {
   onLoadSession?: (session: Session) => void
   onDeleteSession?: (session: Session) => void
   onNewSession?: () => void
+  reports?: Report[]
+  onOpenReport?: (report: Report) => void
+  onDeleteReport?: (report: Report) => void
+  agentsVisible?: boolean
+  onShowAgents?: () => void
+  onHideAgents?: () => void
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -87,6 +93,12 @@ const Sidebar: React.FC<SidebarProps> = ({
   onLoadSession,
   onDeleteSession,
   onNewSession,
+  reports = [],
+  onOpenReport,
+  onDeleteReport,
+  agentsVisible = false,
+  onShowAgents,
+  onHideAgents,
 }) => {
   const [contextOpen, setContextOpen] = useState<boolean>(false)
   const [scoreOpen, setScoreOpen] = useState<boolean>(true)
@@ -148,108 +160,27 @@ const Sidebar: React.FC<SidebarProps> = ({
   return (
     <div className="flex h-full w-64 flex-none flex-col border-r border-sidebar-border bg-sidebar-background font-inter lg:w-[320px]">
       <div className="flex h-full flex-1 flex-col gap-5 overflow-y-auto p-4">
-        {onNewSession && (
-          <button
-            type="button"
-            onClick={onNewSession}
-            className="flex min-h-[40px] w-full items-center justify-center gap-2 rounded-lg border border-sidebar-border bg-sidebar-item-selected px-3 py-2 text-sm font-medium text-sidebar-text transition-colors hover:bg-sidebar-border/50"
-          >
-            <span aria-hidden>✨</span>
-            <span>New Chat</span>
-          </button>
-        )}
-
-        {sessions.length > 0 && (
-          <div className="flex flex-col gap-2">
+        <div className="flex flex-row gap-2">
+          {onNewSession && (
             <button
               type="button"
-              onClick={() => setHistoryOpen(!historyOpen)}
-              className="flex min-h-[36px] w-full items-center gap-2 rounded p-2 text-left text-sm font-normal tracking-wide text-sidebar-text hover:bg-sidebar-item-selected"
+              onClick={onNewSession}
+              className="flex min-h-[40px] flex-1 items-center justify-center gap-2 rounded-lg border border-sidebar-border bg-sidebar-item-selected px-3 py-2 text-sm font-medium text-sidebar-text transition-colors hover:bg-sidebar-border/50"
             >
-              <span className="flex-1">History</span>
-              <span className="text-xs opacity-70">{historyOpen ? "▼" : "▶"}</span>
+              <span aria-hidden>✨</span>
+              <span>New Chat</span>
             </button>
-            {historyOpen && (
-              <ul className="flex max-h-[200px] flex-col gap-0.5 overflow-y-auto rounded border border-sidebar-border bg-sidebar-background p-1">
-                {sessions.map((session) => (
-                  <li key={session.id} className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => onLoadSession?.(session)}
-                      className="flex min-w-0 flex-1 flex-col items-start gap-0.5 rounded px-2 py-1.5 text-left text-xs text-sidebar-text transition-colors hover:bg-sidebar-item-selected"
-                    >
-                      <span className="line-clamp-2 w-full break-words font-medium">
-                        {session.title}
-                      </span>
-                      <span className="text-sidebar-text/70">
-                        {formatSessionDate(session.createdAt)}
-                      </span>
-                    </button>
-                    {onDeleteSession && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onDeleteSession(session)
-                        }}
-                        className="shrink-0 rounded p-1 text-sidebar-text/70 transition-colors hover:bg-sidebar-item-selected hover:text-sidebar-text"
-                        aria-label="Delete history"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        )}
-
-        {latestEvaluation != null && (
-          <div className="flex flex-col gap-2">
+          )}
+          {(onShowAgents || onHideAgents) && (
             <button
               type="button"
-              onClick={() => setScoreOpen(!scoreOpen)}
-              className="flex min-h-[36px] w-full items-center gap-2 rounded p-2 text-left text-sm font-normal tracking-wide text-sidebar-text hover:bg-sidebar-item-selected"
+              onClick={agentsVisible ? onHideAgents : onShowAgents}
+              className="flex min-h-[40px] shrink-0 items-center justify-center gap-1.5 rounded-lg border border-sidebar-border bg-sidebar-background px-3 py-2 text-sm font-medium text-sidebar-text transition-colors hover:bg-sidebar-item-selected"
             >
-              <span className="text-base leading-none">🌟</span>
-              <span className="flex-1">Latest Score</span>
-              <span className="text-xs opacity-70">{scoreOpen ? "▼" : "▶"}</span>
+              {agentsVisible ? "Hide agents" : "Show agents"}
             </button>
-            {scoreOpen && (
-              <div className="rounded-xl border border-amber-500/20 bg-gradient-to-b from-amber-500/10 to-transparent p-3 shadow-inner">
-                <div className="mb-3 flex flex-col items-center gap-1">
-                  <span className="text-3xl font-bold tabular-nums text-amber-400">
-                    {finalScore != null ? finalScore.toFixed(1) : "—"}
-                  </span>
-                  <span className="text-xs uppercase tracking-wider text-sidebar-text/80">
-                    out of 5
-                  </span>
-                  <div className="mt-1 scale-110">
-                    <StarRow score={finalScore ?? 0} />
-                  </div>
-                </div>
-                {aspectScores.length > 0 && (
-                  <div className="space-y-2 border-t border-sidebar-border/50 pt-3">
-                    {aspectScores.map(({ key, label, score }) => (
-                      <div key={key} className="flex items-center justify-between gap-2">
-                        <span className="truncate text-xs text-sidebar-text/90">
-                          {label}
-                        </span>
-                        <div className="flex shrink-0 items-center gap-1.5">
-                          <span className="w-6 text-right text-xs font-medium tabular-nums text-amber-400/90">
-                            {score.toFixed(1)}
-                          </span>
-                          <StarRow score={score} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
+          )}
+        </div>
 
         <div className="flex flex-col gap-2">
           <button
@@ -333,6 +264,140 @@ const Sidebar: React.FC<SidebarProps> = ({
             </div>
           )}
         </div>
+
+        {sessions.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={() => setHistoryOpen(!historyOpen)}
+              className="flex min-h-[36px] w-full items-center gap-2 rounded p-2 text-left text-sm font-normal tracking-wide text-sidebar-text hover:bg-sidebar-item-selected"
+            >
+              <span className="flex-1">History</span>
+              <span className="text-xs opacity-70">{historyOpen ? "▼" : "▶"}</span>
+            </button>
+            {historyOpen && (
+              <ul className="flex max-h-[200px] flex-col gap-0.5 overflow-y-auto rounded border border-sidebar-border bg-sidebar-background p-1">
+                {sessions.map((session) => (
+                  <li key={session.id} className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => onLoadSession?.(session)}
+                      className="flex min-w-0 flex-1 flex-col items-start gap-0.5 rounded px-2 py-1.5 text-left text-xs text-sidebar-text transition-colors hover:bg-sidebar-item-selected"
+                    >
+                      <span className="line-clamp-2 w-full break-words font-medium">
+                        {session.title}
+                      </span>
+                      <span className="text-sidebar-text/70">
+                        {formatSessionDate(session.createdAt)}
+                      </span>
+                    </button>
+                    {onDeleteSession && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onDeleteSession(session)
+                        }}
+                        className="shrink-0 rounded p-1 text-sidebar-text/70 transition-colors hover:bg-sidebar-item-selected hover:text-sidebar-text"
+                        aria-label="Delete history"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
+        {latestEvaluation != null && (
+          <div className="flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={() => setScoreOpen(!scoreOpen)}
+              className="flex min-h-[36px] w-full items-center gap-2 rounded p-2 text-left text-sm font-normal tracking-wide text-sidebar-text hover:bg-sidebar-item-selected"
+            >
+              <span className="text-base leading-none">🌟</span>
+              <span className="flex-1">Overall Score</span>
+              <span className="text-xs opacity-70">{scoreOpen ? "▼" : "▶"}</span>
+            </button>
+            {scoreOpen && (
+              <div className="rounded-xl border border-amber-500/20 bg-gradient-to-b from-amber-500/10 to-transparent p-3 shadow-inner">
+                <div className="mb-3 flex flex-col items-center gap-1">
+                  <span className="text-3xl font-bold tabular-nums text-amber-400">
+                    {finalScore != null ? finalScore.toFixed(1) : "—"}
+                  </span>
+                  <span className="text-xs uppercase tracking-wider text-sidebar-text/80">
+                    out of 5
+                  </span>
+                  <div className="mt-1 scale-110">
+                    <StarRow score={finalScore ?? 0} />
+                  </div>
+                </div>
+                {aspectScores.length > 0 && (
+                  <div className="space-y-2 border-t border-sidebar-border/50 pt-3">
+                    {aspectScores.map(({ key, label, score }) => (
+                      <div key={key} className="flex items-center justify-between gap-2">
+                        <span className="truncate text-xs text-sidebar-text/90">
+                          {label}
+                        </span>
+                        <div className="flex shrink-0 items-center gap-1.5">
+                          <span className="w-6 text-right text-xs font-medium tabular-nums text-amber-400/90">
+                            {score.toFixed(1)}
+                          </span>
+                          <StarRow score={score} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {reports.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <button
+              type="button"
+              className="flex min-h-[36px] w-full items-center gap-2 rounded p-2 text-left text-sm font-normal tracking-wide text-sidebar-text hover:bg-sidebar-item-selected"
+            >
+              <span className="flex-1">Reports</span>
+            </button>
+            <ul className="flex max-h-[200px] flex-col gap-0.5 overflow-y-auto rounded border border-sidebar-border bg-sidebar-background p-1">
+              {reports.map((report) => (
+                <li key={report.id} className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => onOpenReport?.(report)}
+                    className="flex min-w-0 flex-1 flex-col items-start gap-0.5 rounded px-2 py-1.5 text-left text-xs text-sidebar-text transition-colors hover:bg-sidebar-item-selected"
+                  >
+                    <span className="line-clamp-2 w-full break-words font-medium">
+                      {report.title}
+                    </span>
+                    <span className="text-sidebar-text/70">
+                      {formatSessionDate(report.createdAt)}
+                    </span>
+                  </button>
+                  {onDeleteReport && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onDeleteReport(report)
+                      }}
+                      className="shrink-0 rounded p-1 text-sidebar-text/70 transition-colors hover:bg-sidebar-item-selected hover:text-sidebar-text"
+                      aria-label="Delete report"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   )

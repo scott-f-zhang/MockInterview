@@ -44,6 +44,7 @@ class State(TypedDict, total=False):
     aspect_scores: dict[str, float]
     aspect_comments: dict[str, str]
     final_score: float
+    report: str
 
 
 def _parse_input(prompt: str) -> dict[str, Any] | None:
@@ -53,7 +54,7 @@ def _parse_input(prompt: str) -> dict[str, Any] | None:
         if not isinstance(data, dict):
             return None
         msg_type = data.get("message_type")
-        if msg_type not in ("start", "answer"):
+        if msg_type not in ("start", "answer", "answer_simulation", "finish"):
             return None
         history = data.get("conversation_history")
         if history is not None and not isinstance(history, list):
@@ -81,6 +82,7 @@ class FarmAgent:
         self.PARSE_NODE = "ParseNode"
         self.INTERVIEWER_NODE = "InterviewerNode"
         self.EVALUATOR_NODE = "EvaluatorNode"
+        self.FINISH_NODE = "FinishNode"
         self._agent = self.build_graph()
 
     @graph(name="farm_graph")
@@ -89,6 +91,7 @@ class FarmAgent:
         graph_builder.add_node(self.PARSE_NODE, self.parse_node)
         graph_builder.add_node(self.INTERVIEWER_NODE, self.interviewer_node)
         graph_builder.add_node(self.EVALUATOR_NODE, self.evaluator_node)
+        graph_builder.add_node(self.FINISH_NODE, self.finish_node)
         graph_builder.add_edge(START, self.PARSE_NODE)
         graph_builder.add_conditional_edges(
             self.PARSE_NODE,
@@ -96,15 +99,19 @@ class FarmAgent:
             {
                 "interviewer": self.INTERVIEWER_NODE,
                 "evaluator_then_interviewer": self.EVALUATOR_NODE,
+                "finish": self.FINISH_NODE,
             },
         )
         graph_builder.add_edge(self.INTERVIEWER_NODE, END)
         graph_builder.add_edge(self.EVALUATOR_NODE, self.INTERVIEWER_NODE)
+        graph_builder.add_edge(self.FINISH_NODE, END)
         return graph_builder.compile()
 
     def _route_after_parse(self, state: State) -> str:
         parsed = state.get("parsed") or {}
-        if parsed.get("message_type") == "start":
+        if parsed.get("message_type") == "finish":
+            return "finish"
+        if parsed.get("message_type") in ("start", "answer_simulation"):
             return "interviewer"
         return "evaluator_then_interviewer"
 
@@ -114,7 +121,7 @@ class FarmAgent:
         if not parsed:
             return {
                 "error_type": "invalid_input",
-                "error_message": "Invalid input. Send JSON with message_type ('start' or 'answer'), optional content, and optional conversation_history.",
+                "error_message": "Invalid input. Send JSON with message_type ('start', 'answer', or 'finish'), optional content, and optional conversation_history.",
             }
         return {
             "parsed": parsed,
@@ -319,6 +326,44 @@ class FarmAgent:
             response_text = question
 
         return {"last_question": question, "response_text": response_text}
+
+    async def finish_node(self, state: State) -> dict:
+        """Generate a summary report from full conversation + resume + JD."""
+        history = state.get("conversation_history") or []
+        resume = (state.get("resume") or "").strip()
+        job_description = (state.get("job_description") or "").strip()
+
+        conv_text = "\n".join(
+            f"{h.get('role', 'unknown')}: {h.get('content', '')}" for h in history
+        )
+        context_parts = []
+        if resume:
+            context_parts.append(f"Candidate resume:\n{resume}")
+        if job_description:
+            context_parts.append(f"Job description:\n{job_description}")
+        context_block = "\n\n".join(context_parts) if context_parts else ""
+
+        system_prompt = (
+            "You are an expert interviewer writing a final summary report for a mock interview. "
+            "Given the full conversation and optional candidate resume and job description, write a concise report that includes:\n"
+            "1. Overall performance (2–3 sentences).\n"
+            "2. Strengths and areas to improve (by dimension if relevant: relevance, depth, clarity, structure, professionalism).\n"
+            "3. One or two concrete suggestions for the candidate.\n"
+            "Keep the report professional, constructive, and readable. Use clear paragraphs."
+        )
+        user_text = "Full interview conversation:\n\n" + (conv_text or "(No messages)")
+        if context_block:
+            user_text = context_block + "\n\n" + user_text
+        user_text += "\n\nWrite the summary report above."
+
+        messages = [
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=user_text),
+        ]
+        response = get_llm().invoke(messages)
+        report = (response.content or "").strip()
+        logger.debug("Finish report length: %s", len(report))
+        return {"report": report}
 
     async def ainvoke(self, user_input: str) -> dict:
         if not hasattr(self, "_agent"):

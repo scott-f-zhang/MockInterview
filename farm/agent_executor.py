@@ -66,6 +66,12 @@ class FarmAgentExecutor(AgentExecutor):
                 )
                 return
 
+            if "report" in output and output["report"]:
+                payload = json.dumps({"report": output["report"]})
+                logger.info("Finish report sent (length=%s)", len(payload))
+                await event_queue.enqueue_event(new_agent_text_message(payload))
+                return
+
             response_text = output.get("response_text", "")
             if not response_text:
                 response_text = output.get("last_question", "No response generated.")

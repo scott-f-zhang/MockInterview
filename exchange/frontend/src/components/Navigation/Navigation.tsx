@@ -8,9 +8,22 @@ import ThemeToggleIcon from "../icons/ThemeToggleIcon"
 import { useTheme } from "@/hooks/useTheme"
 import InfoModal from "./InfoModal"
 
-const Navigation: React.FC = () => {
+interface NavigationProps {
+  timedRemainingSeconds?: number | null
+  onEndEarly?: () => void
+}
+
+const Navigation: React.FC<NavigationProps> = ({
+  timedRemainingSeconds = null,
+  onEndEarly,
+}) => {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const { isLightMode, toggleTheme } = useTheme()
+
+  const formattedTime =
+    timedRemainingSeconds != null
+      ? `${String(Math.floor(timedRemainingSeconds / 60)).padStart(2, "0")}:${String(timedRemainingSeconds % 60).padStart(2, "0")}`
+      : null
 
   const handleHelpClick = () => {
     setIsModalOpen(true)
@@ -37,6 +50,22 @@ const Navigation: React.FC = () => {
         </div>
 
         <div className="order-3 flex flex-none flex-grow-0 flex-row items-center justify-end gap-2 p-0">
+          {formattedTime != null && (
+            <>
+              <span className="text-sm font-medium tabular-nums text-nav-text">
+                {formattedTime}
+              </span>
+              {onEndEarly && (
+                <button
+                  type="button"
+                  onClick={onEndEarly}
+                  className="rounded border border-nav-border bg-nav-background px-2 py-1 text-xs font-medium text-nav-text transition-colors hover:bg-nav-background-secondary"
+                >
+                  End early
+                </button>
+              )}
+            </>
+          )}
           <button
             className="order-0 flex h-8 w-8 flex-none flex-grow-0 items-center justify-center rounded p-1.5 transition-opacity hover:opacity-80"
             title={`Switch between dark and light mode (currently ${isLightMode ? "light" : "dark"} mode)`}

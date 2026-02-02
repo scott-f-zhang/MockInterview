@@ -50,6 +50,13 @@ class PromptRequest(BaseModel):
     conversation_history: list[dict[str, str]] | None = None
     resume: str | None = None
     job_description: str | None = None
+    message_type: str | None = None  # "answer" | "answer_simulation"; omit for auto
+
+
+class FinishRequest(BaseModel):
+    conversation_history: list[dict[str, str]] | None = None
+    resume: str | None = None
+    job_description: str | None = None
 
 
 def _build_farm_payload(
@@ -57,6 +64,7 @@ def _build_farm_payload(
     conversation_history: list[dict[str, str]] | None,
     resume: str | None = None,
     job_description: str | None = None,
+    message_type: str | None = None,
 ) -> str:
     """Build JSON payload for farm: start or answer with history and optional resume/jd."""
     history = conversation_history or []
@@ -73,7 +81,7 @@ def _build_farm_payload(
     # Already valid JSON with message_type?
     try:
         data = json.loads(prompt)
-        if isinstance(data, dict) and data.get("message_type") in ("start", "answer"):
+        if isinstance(data, dict) and data.get("message_type") in ("start", "answer", "answer_simulation"):
             data_copy = dict(data)
             if resume and resume.strip():
                 data_copy["resume"] = resume.strip()
@@ -82,9 +90,28 @@ def _build_farm_payload(
             return json.dumps(data_copy)
     except (json.JSONDecodeError, TypeError):
         pass
+    answer_type = message_type if message_type in ("answer", "answer_simulation") else "answer"
     payload = {
-        "message_type": "answer",
+        "message_type": answer_type,
         "content": prompt,
+        "conversation_history": [{"role": h.get("role", ""), "content": h.get("content", "")} for h in history],
+    }
+    if resume and resume.strip():
+        payload["resume"] = resume.strip()
+    if job_description and job_description.strip():
+        payload["job_description"] = job_description.strip()
+    return json.dumps(payload)
+
+
+def _build_finish_payload(
+    conversation_history: list[dict[str, str]] | None,
+    resume: str | None = None,
+    job_description: str | None = None,
+) -> str:
+    """Build JSON payload for farm finish: message_type finish with history and optional resume/jd."""
+    history = conversation_history or []
+    payload: dict[str, Any] = {
+        "message_type": "finish",
         "conversation_history": [{"role": h.get("role", ""), "content": h.get("content", "")} for h in history],
     }
     if resume and resume.strip():
@@ -129,6 +156,7 @@ async def handle_prompt(request: PromptRequest):
                 request.conversation_history,
                 request.resume,
                 request.job_description,
+                request.message_type,
             )
             result = await exchange_agent.a2a_client_send_message(payload)
             logger.info("Final result from exchange agent (length=%s)", len(result))
@@ -143,6 +171,36 @@ async def handle_prompt(request: PromptRequest):
             except (json.JSONDecodeError, TypeError):
                 pass
             return {"response": result, "session_id": session_id["executionID"]}
+    except ValueError as ve:
+        logger.exception("ValueError occurred: %s", ve)
+        raise HTTPException(status_code=400, detail=str(ve)) from ve
+    except Exception as e:
+        logger.exception("An error occurred: %s", e)
+        raise HTTPException(status_code=500, detail=f"Operation failed: {str(e)}") from e
+
+
+@app.post("/agent/finish")
+async def handle_finish(request: FinishRequest):
+    """Generate a summary report from the full conversation. No evaluation or next question."""
+    try:
+        with session_start() as session_id:
+            payload = _build_finish_payload(
+                request.conversation_history,
+                request.resume,
+                request.job_description,
+            )
+            result = await exchange_agent.a2a_client_send_message(payload)
+            logger.info("Finish result from exchange agent (length=%s)", len(result))
+            try:
+                parsed = json.loads(result)
+                if isinstance(parsed, dict) and "report" in parsed:
+                    return {
+                        "report": parsed["report"],
+                        "session_id": session_id["executionID"],
+                    }
+            except (json.JSONDecodeError, TypeError):
+                pass
+            return {"report": result or "", "session_id": session_id["executionID"]}
     except ValueError as ve:
         logger.exception("ValueError occurred: %s", ve)
         raise HTTPException(status_code=400, detail=str(ve))

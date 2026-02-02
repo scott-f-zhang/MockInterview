@@ -9,6 +9,23 @@ import { v4 as uuid } from "uuid"
 import { Role } from "@/utils/const"
 import { Message, Evaluation } from "@/types/Message"
 
+export async function requestFinish(
+  conversationHistory: { role: string; content: string }[],
+  resume?: string,
+  job_description?: string,
+): Promise<{ report: string }> {
+  const body: Record<string, unknown> = {
+    conversation_history: conversationHistory,
+  }
+  if (resume?.trim()) body.resume = resume.trim()
+  if (job_description?.trim()) body.job_description = job_description.trim()
+  const response = await axios.post<{ report: string }>(
+    `${EXCHANGE_APP_API_URL}/agent/finish`,
+    body,
+  )
+  return response.data
+}
+
 const DEFAULT_EXCHANGE_APP_API_URL = "http://127.0.0.1:8000"
 const EXCHANGE_APP_API_URL =
   import.meta.env["VITE_EXCHANGE_APP_API_URL"] || DEFAULT_EXCHANGE_APP_API_URL
@@ -39,8 +56,9 @@ interface SendMessageCallbacks {
   conversationHistory?: ConversationTurn[]
   resume?: string
   job_description?: string
+  messageType?: "answer" | "answer_simulation"
   onStart?: () => void
-  onSuccess?: (response: string) => void
+  onSuccess?: (response: string, updatedMessages?: Message[]) => void
   onError?: (error: any) => void
 }
 
@@ -130,6 +148,7 @@ export const useAgentAPI = (): UseAgentAPIReturn => {
     }
     if (callbacks?.resume?.trim()) body.resume = callbacks.resume.trim()
     if (callbacks?.job_description?.trim()) body.job_description = callbacks.job_description.trim()
+    if (callbacks?.messageType) body.message_type = callbacks.messageType
 
     try {
       const response = await axios.post<ApiResponse>(
@@ -137,8 +156,9 @@ export const useAgentAPI = (): UseAgentAPIReturn => {
         body,
       )
 
+      let updatedMessages: Message[] = []
       setMessages((prevMessages: Message[]) => {
-        const updatedMessages = [...prevMessages]
+        updatedMessages = [...prevMessages]
         updatedMessages[updatedMessages.length - 1] = {
           role: "assistant",
           content: response.data.response,
@@ -150,7 +170,7 @@ export const useAgentAPI = (): UseAgentAPIReturn => {
       })
 
       if (callbacks?.onSuccess) {
-        callbacks.onSuccess(response.data.response)
+        callbacks.onSuccess(response.data.response, updatedMessages)
       }
     } catch (error) {
       setMessages((prevMessages: Message[]) => {
