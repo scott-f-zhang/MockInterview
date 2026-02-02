@@ -13,6 +13,18 @@ const DEFAULT_EXCHANGE_APP_API_URL = "http://127.0.0.1:8000"
 const EXCHANGE_APP_API_URL =
   import.meta.env["VITE_EXCHANGE_APP_API_URL"] || DEFAULT_EXCHANGE_APP_API_URL
 
+export async function uploadAndExtractDocument(
+  file: File,
+): Promise<{ text: string }> {
+  const formData = new FormData()
+  formData.append("file", file)
+  const response = await axios.post<{ text: string }>(
+    `${EXCHANGE_APP_API_URL}/extract-document`,
+    formData,
+  )
+  return response.data
+}
+
 interface ApiResponse {
   response: string
   evaluation?: Evaluation

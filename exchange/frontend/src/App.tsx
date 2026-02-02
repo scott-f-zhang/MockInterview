@@ -109,63 +109,6 @@ const App: React.FC = () => {
     setIsAgentLoading(true)
   }
 
-  const handleDropdownSelect = async (query: string) => {
-      setCurrentUserMessage(query)
-      setIsAgentLoading(true)
-
-      const conversationHistory = messages.map((m) => ({
-        role: m.role,
-        content: m.content,
-      }))
-
-      try {
-        await sendMessageWithCallback(query, setMessages, {
-          conversationHistory,
-          resume: resume || undefined,
-          job_description: jobDescription || undefined,
-          onStart: () => {
-            setButtonClicked(true)
-          },
-
-          onSuccess: (response) => {
-            setAiReplied(true)
-            handleApiResponse(response, false)
-          },
-
-          onError: (error) => {
-            if (import.meta.env.DEV) {
-              logger.apiError("/agent/prompt", error)
-            }
-
-            const { status, message } = parseApiError(error)
-
-            // 4xx errors
-            if (status && status >= 400 && status < 500) {
-              handleApiResponse(
-                  `HTTP ${status} - ${message}` ||
-                  "Sorry, I encountered an error. Please try again later",
-                  true
-              )
-              return
-            }
-
-            // all other errors
-            handleApiResponse(message, true)
-            return
-          },
-        })
-      } catch (error) {
-        if (import.meta.env.DEV) {
-          logger.apiError("/agent/prompt", error)
-        }
-
-        handleApiResponse(
-          "Sorry, I encountered an error. Please try again later.",
-          true
-        )
-      }
-    }
-
   const handleClearConversation = () => {
     if (messages.length > 0) {
       const newSession: Session = {
@@ -261,10 +204,8 @@ const App: React.FC = () => {
                 setButtonClicked={setButtonClicked}
                 setAiReplied={setAiReplied}
                 isBottomLayout={true}
-                showSuggestedPrompts={true}
                 resume={resume}
                 jobDescription={jobDescription}
-                onDropdownSelect={handleDropdownSelect}
                 onUserInput={handleUserInput}
                 onApiResponse={handleApiResponse}
                 onClearConversation={handleClearConversation}

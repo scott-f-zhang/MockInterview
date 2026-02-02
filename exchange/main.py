@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
@@ -18,6 +18,11 @@ from common.version import get_version_info
 
 from config.logging_config import setup_logging
 from exchange.agent import ExchangeAgent
+from exchange.document_extract import (
+    DOCX_MIME,
+    PDF_MIME,
+    extract_text,
+)
 
 setup_logging()
 logger = logging.getLogger("mock_interview.exchange.main")
@@ -35,6 +40,9 @@ app.add_middleware(
 )
 
 exchange_agent = ExchangeAgent(factory=factory)
+
+MAX_EXTRACT_FILE_BYTES = 10 * 1024 * 1024  # 10 MB
+ALLOWED_EXTRACT_MIME = {PDF_MIME, DOCX_MIME}
 
 
 class PromptRequest(BaseModel):
@@ -84,6 +92,32 @@ def _build_farm_payload(
     if job_description and job_description.strip():
         payload["job_description"] = job_description.strip()
     return json.dumps(payload)
+
+
+@app.post("/extract-document")
+async def extract_document(file: UploadFile = File(...)):
+    """Extract plain text from an uploaded PDF or DOCX file. Max size 10 MB."""
+    content_type = (file.content_type or "").strip().lower()
+    if content_type and content_type not in ALLOWED_EXTRACT_MIME:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported file type. Use {PDF_MIME} or {DOCX_MIME}.",
+        )
+    raw = await file.read()
+    if len(raw) > MAX_EXTRACT_FILE_BYTES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File too large. Maximum size is {MAX_EXTRACT_FILE_BYTES // (1024 * 1024)} MB.",
+        )
+    if not raw:
+        raise HTTPException(status_code=400, detail="Empty file.")
+    try:
+        # Reset stream so extract_text can read (it calls await file.read())
+        file.file.seek(0)
+        text = await extract_text(file)
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve)) from ve
+    return {"text": text}
 
 
 @app.post("/agent/prompt")

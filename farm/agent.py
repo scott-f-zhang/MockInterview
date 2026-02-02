@@ -312,13 +312,9 @@ class FarmAgent:
             }
 
         if msg_type == "answer" and last_feedback:
-            final_score = state.get("final_score")
-            score_line = (
-                f"\n\n**Score: {final_score:.1f}/5**\n\n"
-                if final_score is not None and isinstance(final_score, (int, float))
-                else "\n\n"
-            )
-            response_text = f"**Feedback:**\n{last_feedback}{score_line}**Next question:**\n{question}"
+            # Single newlines only; score is already shown in the evaluation card
+            feedback_compact = re.sub(r"\n{2,}", "\n", last_feedback).strip()
+            response_text = f"**Feedback:**\n{feedback_compact}\n**Next question:**\n{question}"
         else:
             response_text = question
 

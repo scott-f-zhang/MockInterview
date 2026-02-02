@@ -3,9 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  **/
 
-import React, { useState } from "react"
-import { Trash2 } from "lucide-react"
+import React, { useRef, useState } from "react"
+import { Trash2, Upload } from "lucide-react"
 import { Evaluation, Session } from "@/types/Message"
+import { uploadAndExtractDocument } from "@/hooks/useAgentAPI"
 
 const ASPECT_LABELS: Record<string, string> = {
   relevance: "Relevance",
@@ -90,6 +91,48 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [contextOpen, setContextOpen] = useState<boolean>(false)
   const [scoreOpen, setScoreOpen] = useState<boolean>(true)
   const [historyOpen, setHistoryOpen] = useState<boolean>(true)
+  const [resumeUploadError, setResumeUploadError] = useState<string | null>(null)
+  const [jdUploadError, setJdUploadError] = useState<string | null>(null)
+  const resumeInputRef = useRef<HTMLInputElement>(null)
+  const jdInputRef = useRef<HTMLInputElement>(null)
+
+  const handleResumeFileChange = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0]
+    e.target.value = ""
+    if (!file) return
+    setResumeUploadError(null)
+    try {
+      const { text } = await uploadAndExtractDocument(file)
+      setResume(text)
+    } catch (err: unknown) {
+      const message =
+        err && typeof err === "object" && "response" in err
+          ? String((err as { response?: { data?: { detail?: string } } }).response?.data?.detail ?? "Upload failed")
+          : "Upload failed"
+      setResumeUploadError(message)
+    }
+  }
+
+  const handleJdFileChange = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0]
+    e.target.value = ""
+    if (!file) return
+    setJdUploadError(null)
+    try {
+      const { text } = await uploadAndExtractDocument(file)
+      setJobDescription(text)
+    } catch (err: unknown) {
+      const message =
+        err && typeof err === "object" && "response" in err
+          ? String((err as { response?: { data?: { detail?: string } } }).response?.data?.detail ?? "Upload failed")
+          : "Upload failed"
+      setJdUploadError(message)
+    }
+  }
 
   const finalScore = latestEvaluation
     ? normalizeScore(latestEvaluation.final_score)
@@ -221,9 +264,33 @@ const Sidebar: React.FC<SidebarProps> = ({
             <div className="flex flex-col gap-3 rounded border border-sidebar-border bg-sidebar-background p-2">
               <label className="flex flex-col gap-1 text-xs text-sidebar-text">
                 Resume (optional)
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={resumeInputRef}
+                    type="file"
+                    accept=".pdf,.docx"
+                    className="hidden"
+                    aria-hidden
+                    onChange={handleResumeFileChange}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => resumeInputRef.current?.click()}
+                    className="flex items-center gap-1.5 rounded border border-sidebar-border bg-sidebar-background px-2 py-1.5 text-xs text-sidebar-text transition-colors hover:bg-sidebar-item-selected"
+                  >
+                    <Upload className="h-3.5 w-3.5" />
+                    Upload PDF/DOCX
+                  </button>
+                </div>
+                {resumeUploadError && (
+                  <span className="text-xs text-red-400">{resumeUploadError}</span>
+                )}
                 <textarea
                   value={resume}
-                  onChange={(e) => setResume(e.target.value)}
+                  onChange={(e) => {
+                    setResume(e.target.value)
+                    setResumeUploadError(null)
+                  }}
                   placeholder="Paste your resume. The interview will be tailored to your background."
                   rows={4}
                   className="w-full resize-y rounded border border-nav-border bg-chat-input-background px-2 py-1.5 text-sm text-chat-text placeholder:text-chat-text placeholder:opacity-60"
@@ -231,9 +298,33 @@ const Sidebar: React.FC<SidebarProps> = ({
               </label>
               <label className="flex flex-col gap-1 text-xs text-sidebar-text">
                 Job description (optional)
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={jdInputRef}
+                    type="file"
+                    accept=".pdf,.docx"
+                    className="hidden"
+                    aria-hidden
+                    onChange={handleJdFileChange}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => jdInputRef.current?.click()}
+                    className="flex items-center gap-1.5 rounded border border-sidebar-border bg-sidebar-background px-2 py-1.5 text-xs text-sidebar-text transition-colors hover:bg-sidebar-item-selected"
+                  >
+                    <Upload className="h-3.5 w-3.5" />
+                    Upload PDF/DOCX
+                  </button>
+                </div>
+                {jdUploadError && (
+                  <span className="text-xs text-red-400">{jdUploadError}</span>
+                )}
                 <textarea
                   value={jobDescription}
-                  onChange={(e) => setJobDescription(e.target.value)}
+                  onChange={(e) => {
+                    setJobDescription(e.target.value)
+                    setJdUploadError(null)
+                  }}
                   placeholder="Paste the job description. Questions will align with the role."
                   rows={4}
                   className="w-full resize-y rounded border border-nav-border bg-chat-input-background px-2 py-1.5 text-sm text-chat-text placeholder:text-chat-text placeholder:opacity-60"
