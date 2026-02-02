@@ -1,8 +1,9 @@
 # Mock Interview Platform
 
-Mock interview agent project: combines resume + JD (optional), video/audio/text inputs (later), and feedback. Based on [CoffeeAGNTCY Corto](https://github.com/agntcy/coffeeAgntcy) template.
-
 ![](https://share.cleanshot.com/Grhv90NB+)
+![](https://share.cleanshot.com/gPyTnBnM+)
+
+Mock interview agent project: combines resume + JD (optional), video/audio/text inputs (later), and feedback. Based on [CoffeeAGNTCY Corto](https://github.com/agntcy/coffeeAgntcy) template.
 
 ## Structure
 
