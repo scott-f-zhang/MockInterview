@@ -28,9 +28,6 @@ interface ChatAreaProps {
   onFinish?: () => void
   isFinishLoading?: boolean
   mode?: "free" | "timed" | "simulation"
-  onModeChange?: (mode: "free" | "timed" | "simulation") => void
-  timedDurationMinutes?: number
-  onTimedDurationChange?: (minutes: number) => void
   onStartTimed?: () => void
 }
 
@@ -52,9 +49,6 @@ const ChatArea: React.FC<ChatAreaProps> = ({
   onFinish,
   isFinishLoading = false,
   mode = "free",
-  onModeChange,
-  timedDurationMinutes = 10,
-  onTimedDurationChange,
   onStartTimed,
 }) => {
   const [content, setContent] = useState<string>("")
@@ -176,39 +170,7 @@ const ChatArea: React.FC<ChatAreaProps> = ({
       </div>
 
       <div className="flex w-full flex-none flex-col items-center justify-center gap-2 px-4 py-4 sm:px-8 md:px-16 lg:px-[120px]">
-        <div className="flex w-full max-w-[880px] flex-col items-stretch gap-3 p-0 sm:flex-row sm:items-end">
-          {onModeChange && (
-            <div className="flex shrink-0 flex-row items-center gap-2 sm:pb-1">
-              <span className="text-xs font-medium text-sidebar-text/80 sm:whitespace-nowrap">
-                Mode
-              </span>
-              <select
-                value={mode}
-                onChange={(e) =>
-                  onModeChange(e.target.value as "free" | "timed" | "simulation")
-                }
-                className="rounded border border-sidebar-border bg-sidebar-background px-2 py-1.5 text-xs text-chat-text"
-              >
-                <option value="free">Free</option>
-                <option value="timed">Timed</option>
-                <option value="simulation">Simulation</option>
-              </select>
-              {mode === "timed" && onTimedDurationChange && (
-                <select
-                  value={timedDurationMinutes}
-                  onChange={(e) => onTimedDurationChange(Number(e.target.value))}
-                  className="rounded border border-sidebar-border bg-sidebar-background px-2 py-1.5 text-xs text-chat-text"
-                  title="Duration (min)"
-                >
-                  {[5, 10, 15].map((n) => (
-                    <option key={n} value={n}>
-                      {n} min
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
-          )}
+        <div className="flex w-full max-w-[880px] flex-col items-stretch gap-4 p-0 sm:flex-row sm:items-end">
           <div className="box-border flex min-h-[44px] min-w-0 flex-1 flex-row items-stretch rounded border border-node-background bg-chat-input-background px-0 py-[5px]">
             <div className="flex w-full flex-row items-stretch gap-[10px] px-4 py-2">
               <textarea

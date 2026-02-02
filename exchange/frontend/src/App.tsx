@@ -263,26 +263,40 @@ const App: React.FC = () => {
             reports={reports}
             onOpenReport={setReportToShow}
             onDeleteReport={deleteReport}
-            agentsVisible={!isChatFullscreen}
-            onShowAgents={() => setIsChatFullscreen(false)}
-            onHideAgents={() => setIsChatFullscreen(true)}
+            mode={mode}
+            onModeChange={setMode}
+            timedDurationMinutes={timedDurationMinutes}
+            onTimedDurationChange={setTimedDurationMinutes}
           />
           </div>
-          <button
-            type="button"
-            onClick={() => setSidebarOpen((prev) => !prev)}
-            className={`absolute top-[52px] z-30 flex h-10 w-6 items-center justify-center rounded-r-md border border-l-0 border-sidebar-border bg-sidebar-background text-sidebar-text shadow-sm transition-[left] duration-200 ease-out hover:bg-sidebar-item-selected ${
-              sidebarOpen ? "left-64 lg:left-[320px]" : "left-0"
-            }`}
-            aria-label={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
-            title={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
-          >
-            {sidebarOpen ? (
-              <PanelLeftClose className="h-4 w-4" />
-            ) : (
-              <PanelLeft className="h-4 w-4" />
-            )}
-          </button>
+          <div className="absolute right-4 top-[52px] z-30 flex flex-row items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsChatFullscreen((prev) => !prev)}
+              className="flex h-9 w-9 items-center justify-center rounded-md border border-sidebar-border bg-sidebar-background text-sidebar-text shadow-sm transition-colors hover:bg-sidebar-item-selected"
+              aria-label={isChatFullscreen ? "Show agents" : "Fullscreen chat"}
+              title={isChatFullscreen ? "Show agents" : "Fullscreen chat"}
+            >
+              {isChatFullscreen ? (
+                <Maximize2 className="h-4 w-4" />
+              ) : (
+                <Minimize2 className="h-4 w-4" />
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => setSidebarOpen((prev) => !prev)}
+              className="flex h-9 w-9 items-center justify-center rounded-md border border-sidebar-border bg-sidebar-background text-sidebar-text shadow-sm transition-colors hover:bg-sidebar-item-selected"
+              aria-label={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
+              title={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
+            >
+              {sidebarOpen ? (
+                <PanelLeftClose className="h-4 w-4" />
+              ) : (
+                <PanelLeft className="h-4 w-4" />
+              )}
+            </button>
+          </div>
           <div className="flex min-h-0 min-w-0 flex-1 flex-col border-l border-action-background bg-app-background">
             {!isChatFullscreen && (
               <div
@@ -312,19 +326,6 @@ const App: React.FC = () => {
                     : "relative flex min-h-[76px] w-full min-w-0 flex-1 flex-col items-center justify-end gap-0 overflow-hidden bg-overlay-background p-0 md:min-h-[96px]"
               }
             >
-              <button
-                type="button"
-                onClick={() => setIsChatFullscreen((prev) => !prev)}
-                className="absolute right-2 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-md border border-sidebar-border bg-sidebar-background text-sidebar-text shadow-sm transition-colors hover:bg-sidebar-item-selected"
-                aria-label={isChatFullscreen ? "Restore chat to half size" : "Fullscreen chat"}
-                title={isChatFullscreen ? "Restore chat to half size" : "Fullscreen chat"}
-              >
-                {isChatFullscreen ? (
-                  <Minimize2 className="h-4 w-4" />
-                ) : (
-                  <Maximize2 className="h-4 w-4" />
-                )}
-              </button>
               <ChatArea
                 messages={messages}
                 setMessages={setMessages}
@@ -343,9 +344,6 @@ const App: React.FC = () => {
                 onFinish={handleFinish}
                 isFinishLoading={isFinishLoading}
                 mode={mode}
-                onModeChange={setMode}
-                timedDurationMinutes={timedDurationMinutes}
-                onTimedDurationChange={setTimedDurationMinutes}
                 onStartTimed={() => {
                   if (mode === "timed" && timedStartedAt === null) {
                     setTimedStartedAt(Date.now())

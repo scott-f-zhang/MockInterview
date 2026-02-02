@@ -78,9 +78,10 @@ interface SidebarProps {
   reports?: Report[]
   onOpenReport?: (report: Report) => void
   onDeleteReport?: (report: Report) => void
-  agentsVisible?: boolean
-  onShowAgents?: () => void
-  onHideAgents?: () => void
+  mode?: "free" | "timed" | "simulation"
+  onModeChange?: (mode: "free" | "timed" | "simulation") => void
+  timedDurationMinutes?: number
+  onTimedDurationChange?: (minutes: number) => void
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -96,11 +97,12 @@ const Sidebar: React.FC<SidebarProps> = ({
   reports = [],
   onOpenReport,
   onDeleteReport,
-  agentsVisible = false,
-  onShowAgents,
-  onHideAgents,
+  mode = "free",
+  onModeChange,
+  timedDurationMinutes = 10,
+  onTimedDurationChange,
 }) => {
-  const [contextOpen, setContextOpen] = useState<boolean>(false)
+  const [contextOpen, setContextOpen] = useState<boolean>(true)
   const [scoreOpen, setScoreOpen] = useState<boolean>(true)
   const [historyOpen, setHistoryOpen] = useState<boolean>(true)
   const [resumeUploadError, setResumeUploadError] = useState<string | null>(null)
@@ -160,27 +162,16 @@ const Sidebar: React.FC<SidebarProps> = ({
   return (
     <div className="flex h-full w-64 flex-none flex-col border-r border-sidebar-border bg-sidebar-background font-inter lg:w-[320px]">
       <div className="flex h-full flex-1 flex-col gap-5 overflow-y-auto p-4">
-        <div className="flex flex-row gap-2">
-          {onNewSession && (
-            <button
-              type="button"
-              onClick={onNewSession}
-              className="flex min-h-[40px] flex-1 items-center justify-center gap-2 rounded-lg border border-sidebar-border bg-sidebar-item-selected px-3 py-2 text-sm font-medium text-sidebar-text transition-colors hover:bg-sidebar-border/50"
-            >
-              <span aria-hidden>✨</span>
-              <span>New Chat</span>
-            </button>
-          )}
-          {(onShowAgents || onHideAgents) && (
-            <button
-              type="button"
-              onClick={agentsVisible ? onHideAgents : onShowAgents}
-              className="flex min-h-[40px] shrink-0 items-center justify-center gap-1.5 rounded-lg border border-sidebar-border bg-sidebar-background px-3 py-2 text-sm font-medium text-sidebar-text transition-colors hover:bg-sidebar-item-selected"
-            >
-              {agentsVisible ? "Hide agents" : "Show agents"}
-            </button>
-          )}
-        </div>
+        {onNewSession && (
+          <button
+            type="button"
+            onClick={onNewSession}
+            className="flex min-h-[40px] w-full items-center justify-center gap-2 rounded-lg border border-sidebar-border bg-sidebar-item-selected px-3 py-2 text-sm font-medium text-sidebar-text transition-colors hover:bg-sidebar-border/50"
+          >
+            <span aria-hidden>✨</span>
+            <span>New Chat</span>
+          </button>
+        )}
 
         <div className="flex flex-col gap-2">
           <button
@@ -194,7 +185,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           {contextOpen && (
             <div className="flex flex-col gap-3 rounded border border-sidebar-border bg-sidebar-background p-2">
               <label className="flex flex-col gap-1 text-xs text-sidebar-text">
-                Resume (optional)
+                Resume
                 <div className="flex items-center gap-2">
                   <input
                     ref={resumeInputRef}
@@ -264,6 +255,55 @@ const Sidebar: React.FC<SidebarProps> = ({
             </div>
           )}
         </div>
+
+        {onModeChange && (
+          <div className="flex flex-col gap-2">
+            <span className="rounded p-2 text-left text-sm font-medium text-sidebar-text">
+              Mode
+            </span>
+            <div className="flex flex-col gap-1 rounded border border-sidebar-border bg-sidebar-background p-2">
+              {(["free", "timed", "simulation"] as const).map((m) => (
+                <label
+                  key={m}
+                  className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs text-sidebar-text hover:bg-sidebar-item-selected"
+                >
+                  <input
+                    type="radio"
+                    name="mode"
+                    checked={mode === m}
+                    onChange={() => onModeChange(m)}
+                    className="h-3.5 w-3.5"
+                  />
+                  <span>
+                    {m === "free"
+                      ? "Free"
+                      : m === "timed"
+                        ? "Timed"
+                        : "Simulation"}
+                  </span>
+                </label>
+              ))}
+              {mode === "timed" && onTimedDurationChange && (
+                <div className="mt-2 flex items-center gap-2 border-t border-sidebar-border pt-2">
+                  <span className="text-xs text-sidebar-text">Duration (min)</span>
+                  <select
+                    value={timedDurationMinutes}
+                    onChange={(e) =>
+                      onTimedDurationChange(Number(e.target.value))
+                    }
+                    className="rounded border border-sidebar-border bg-chat-input-background px-2 py-1 text-xs text-chat-text"
+                  >
+                    {[5, 10, 15].map((n) => (
+                      <option key={n} value={n}>
+                        {n}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {sessions.length > 0 && (
           <div className="flex flex-col gap-2">
